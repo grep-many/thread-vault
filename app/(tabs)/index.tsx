@@ -1,12 +1,12 @@
 import { View, Text } from "react-native";
 import React from "react";
 
-const Session = () => {
+const Threads = () => {
   return (
     <View>
-      <Text>Session</Text>
+      <Text>Threads</Text>
     </View>
   );
 };
 
-export default Session;
+export default Threads;
