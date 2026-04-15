@@ -1,6 +1,6 @@
 import {
   // SplashScreen,
-  Stack
+  Stack,
 } from "expo-router";
 import "@/global.css";
 import { SafeAreaView } from "react-native-safe-area-context";
