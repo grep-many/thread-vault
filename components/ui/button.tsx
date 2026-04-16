@@ -1,50 +1,72 @@
-import React, { forwardRef } from "react";
-import { Pressable, Text, ActivityIndicator, View } from "react-native";
+import { 
+  ActivityIndicator, 
+  Pressable, 
+  View, 
+  StyleSheet,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
-const Button = forwardRef<any, ButtonProps>(
-  (
-    { variant = "primary", isLoading, children, disabled, className = "", onPress, ...props },
-    ref,
-  ) => {
-    const isDisabled = isLoading || disabled;
+export const Button = ({
+  className = "",
+  variant = "primary",
+  isLoading,
+  children,
+  disabled,
+  style,
+  ...props
+}: ButtonProps) => {
+  
+  // 1. Define color constants as Tuples to satisfy LinearGradient's strict types
+  const gradientColors = {
+    gradient: ["#db2777", "#9333ea"] as const, // pink-600 to purple-600
+    primary: ["#2563eb", "#3b82f6"] as const,  // blue-600 to blue-500
+  };
 
-    let variantStyles = "";
-    let textStyles = "text-white";
+  const isGradientVariant = variant === "gradient" || variant === "primary";
 
-    if (variant === "gradient") {
-      variantStyles = "bg-pink-600 active:bg-pink-500"; // gradient workaround below
-    } else if (variant === "primary") {
-      variantStyles = "bg-blue-600 active:bg-blue-500";
-    } else if (variant === "secondary") {
-      variantStyles = "bg-white/10 active:bg-white/20 border border-white/5";
-      textStyles = "text-white";
-    }
+  // 2. Base container styles
+  const containerClasses = `
+    relative flex-row items-center justify-center overflow-hidden rounded-2xl py-4 px-6
+    ${variant === "secondary" ? "bg-white/10 border border-white/10" : ""}
+    ${(disabled || isLoading) ? "opacity-50" : "opacity-100"}
+    ${className}
+  `;
 
-    return (
-      <Pressable
-        ref={ref}
-        disabled={isDisabled}
-        onPress={onPress}
-        className={`relative flex-row items-center justify-center gap-2 rounded-xl py-3 ${
-          isDisabled ? "opacity-50" : ""
-        } ${variantStyles} ${className}`}
-        {...props}
-      >
-        {/* Gradient overlay (RN workaround) */}
-        {variant === "gradient" && (
-          <View className="absolute inset-0 rounded-xl bg-purple-600 opacity-70" />
+  return (
+    <Pressable
+  disabled={disabled || isLoading}
+  style={(state) => [
+    { 
+      // Instead of { pressed }, use state.pressed
+      transform: [{ scale: state.pressed && !disabled ? 0.97 : 1 }] 
+    },
+    // Spread the state to the parent style prop if it's a function
+    typeof style === 'function' ? style(state) : style
+  ]}
+  {...props}
+>
+      <View className={containerClasses}>
+        {/* Background Gradient */}
+        {isGradientVariant && (
+          <LinearGradient
+            colors={gradientColors[variant as "gradient" | "primary"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill} // Clean way to do absolute inset-0
+          />
         )}
-
-        <View className="relative z-10 flex-row items-center gap-2">
-          {isLoading && <ActivityIndicator size="small" color="white" />}
-
-          <Text className={`text-sm font-medium ${textStyles}`}>{children}</Text>
+        
+        {/* Button Content Wrapper */}
+        <View className="flex-row items-center justify-center gap-2">
+          {isLoading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            // Ensure children are correctly rendered
+            // Note: If passing raw text, wrap it in <Text> in the parent
+            children
+          )}
         </View>
-      </Pressable>
-    );
-  },
-);
-
-Button.displayName = "Button";
-
-export { Button };
+      </View>
+    </Pressable>
+  );
+};

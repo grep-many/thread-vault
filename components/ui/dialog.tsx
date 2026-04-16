@@ -1,74 +1,85 @@
-import React from "react";
-import { Modal, View, Text, Pressable, TouchableWithoutFeedback } from "react-native";
-import { BlurView } from "expo-blur";
+import { Modal, View, Text, TouchableOpacity, SafeAreaView } from "react-native";
 import { X } from "lucide-react-native";
 
-export function Dialog({
+export const Dialog = ({
   isOpen,
   onClose,
   title,
   children,
   disableClose,
   fullScreen,
-}: DialogProps) {
-  if (!isOpen) return null;
-
+}: DialogProps) => {
   return (
-    <Modal transparent animationType="fade">
-      {/* Overlay with Blur */}
-      <TouchableWithoutFeedback onPress={() => !disableClose && onClose()}>
-        <View className="absolute inset-0">
-          {/* Blur Layer */}
-          <BlurView intensity={50} tint="dark" className="absolute inset-0" />
-
-          {/* Dark overlay (for contrast like your bg-black/80) */}
-          <View className="absolute inset-0 bg-black/40" />
-        </View>
-      </TouchableWithoutFeedback>
-
-      {/* Container */}
-      <View className={`flex-1 items-center justify-center ${fullScreen ? "p-0" : "p-4"}`}>
-        <View
-          className={`relative overflow-hidden ${
-            fullScreen
-              ? "h-full w-full rounded-none bg-transparent"
-              : "w-full max-w-sm rounded-4xl border border-white/10 bg-zinc-950/90"
-          }`}
+    <Modal
+      transparent
+      visible={isOpen}
+      animationType="fade"
+      statusBarTranslucent // Ensures backdrop covers the status bar on Android
+      onRequestClose={() => {
+        if (!disableClose) onClose();
+      }}
+    >
+      <TouchableOpacity
+        activeOpacity={1}
+        className="flex-1 bg-black/80 items-center justify-center"
+        onPress={() => !disableClose && onClose()}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+          className={`
+            ${fullScreen 
+              ? "h-full w-full rounded-none bg-zinc-950" 
+              : "w-[92%] max-w-sm rounded-4xl border border-white/10 bg-zinc-950 overflow-hidden shadow-2xl"}
+          `}
         >
-          {/* Header */}
+          {/* Header Section */}
           {(title || (!disableClose && !fullScreen)) && (
-            <View className="relative w-full items-center justify-center border-b border-white/5 bg-zinc-900/60 p-5">
-              {title && <Text className="font-semibold text-zinc-200">{title}</Text>}
-
+            <View className="relative w-full border-b border-white/5 bg-zinc-900/50 p-5 items-center justify-center">
+              {typeof title === "string" ? (
+                <Text className="font-semibold text-zinc-200 text-lg">{title}</Text>
+              ) : (
+                title
+              )}
+              
               {!disableClose && !fullScreen && (
-                <Pressable
+                <TouchableOpacity
                   onPress={onClose}
-                  className="absolute top-1/2 right-5 -translate-y-1/2 rounded-full p-1.5"
+                  className="absolute right-4 p-1"
                 >
-                  <X size={20} color="#a1a1aa" />
-                </Pressable>
+                  <X size={22} color="#71717a" />
+                </TouchableOpacity>
               )}
             </View>
           )}
 
-          {/* Fullscreen Close */}
+          {/* Content Body */}
+          <View
+            className={`
+              ${fullScreen 
+                ? "flex-1 p-6" 
+                : "p-6 w-full"} 
+            `}
+          >
+            {/* Wrapping children in a View with w-full ensures 
+               that buttons inside the Dialog use the full width available.
+            */}
+            <View className="w-full">
+              {children}
+            </View>
+          </View>
+
+          {/* FullScreen Close Button for Android placement */}
           {fullScreen && !disableClose && (
-            <Pressable
+            <TouchableOpacity
               onPress={onClose}
-              className="absolute top-10 right-4 z-50 rounded-full bg-black/30 p-3"
+              className="absolute top-10 right-6 z-50 rounded-full bg-white/10 p-3"
             >
               <X size={24} color="white" />
-            </Pressable>
+            </TouchableOpacity>
           )}
-
-          {/* Content */}
-          <View
-            className={`${fullScreen ? "flex-1 items-center justify-center" : "items-center p-8"}`}
-          >
-            {children}
-          </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
-}
+};
