@@ -10,7 +10,6 @@ export default function SessionAuth() {
   const [errorMsg, setErrorMsg] = useState("");
   const [sessionId, setSessionId] = useState("");
 
-
   const handleSubmit = async () => {
     if (!sessionId.trim()) return;
 
@@ -18,7 +17,7 @@ export default function SessionAuth() {
     setErrorMsg("");
 
     try {
-      setTimeout(()=>new Promise(resolve=>resolve),3000)
+      setTimeout(() => new Promise((resolve) => resolve), 3000);
     } catch (err) {
       setErrorMsg("Network error. Check your connection.");
     } finally {
@@ -27,9 +26,7 @@ export default function SessionAuth() {
   };
 
   return (
-    <View className="flex-1 bg-black">
-      <LinearGradient colors={["#09090b", "#18181b", "#000000"]} className="absolute inset-0" />
-
+    <>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View className="flex-1 items-center justify-center p-6">
           <View className="w-full max-w-md">
@@ -52,7 +49,6 @@ export default function SessionAuth() {
 
             {/* Card - Added overflow-hidden */}
             <View className="overflow-hidden rounded-4xl border border-white/10 bg-white/5 p-8 shadow-2xl">
-
               <View className="gap-6">
                 <View>
                   <View className="mb-2 flex-row items-center justify-between px-1">
@@ -122,7 +118,7 @@ export default function SessionAuth() {
           </Button>
         </View>
       </Dialog>
-    </View>
+    </>
   );
 }
 
