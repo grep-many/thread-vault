@@ -41,18 +41,20 @@ export default function SessionAuth() {
                   <Logs size={28} color="white" />
                 </LinearGradient>
               </View>
-              <Text className="mb-2 text-4xl font-bold tracking-tight text-white">
+              <Text className="mb-2 text-4xl font-bold tracking-tight dark:text-white">
                 Welcome Back
               </Text>
-              <Text className="text-zinc-400">Connect securely using your session</Text>
+              <Text className="text-zinc-600 dark:text-zinc-400">
+                Connect securely using your session
+              </Text>
             </View>
 
             {/* Card - Added overflow-hidden */}
-            <View className="overflow-hidden rounded-4xl border border-white/10 bg-white/5 p-8 shadow-2xl">
+            <View className="overflow-hidden rounded-4xl border border-black/10 bg-black/5 p-8 shadow-2xl dark:border-white/10 dark:bg-white/5">
               <View className="gap-6">
                 <View>
                   <View className="mb-2 flex-row items-center justify-between px-1">
-                    <Text className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+                    <Text className="text-[10px] font-bold tracking-widest text-zinc-700 uppercase dark:text-zinc-500">
                       Session ID Cookie
                     </Text>
 
@@ -103,7 +105,7 @@ export default function SessionAuth() {
         <View className="p-6">
           <View className="mb-4 flex-row items-center gap-2">
             <HelpCircle size={24} color="#ec4899" />
-            <Text className="text-xl font-bold text-white">Finding your Session</Text>
+            <Text className="text-xl font-bold dark:text-white">Finding your Session</Text>
           </View>
 
           <View className="mb-6 space-y-4">
@@ -114,7 +116,7 @@ export default function SessionAuth() {
           </View>
 
           <Button variant="secondary" className="w-full" onPress={() => setIsHelpOpen(false)}>
-            I Understand
+            <Text className="dark:text-white">I Understand</Text>
           </Button>
         </View>
       </Dialog>
@@ -127,7 +129,7 @@ function HelpStep({ number, text }: { number: string; text: string }) {
   return (
     <View className="flex-row items-start gap-3 py-1">
       <Text className="font-bold text-pink-500">{number}.</Text>
-      <Text className="text-sm leading-5 text-zinc-300">{text}</Text>
+      <Text className="text-sm leading-5 text-zinc-800 dark:text-zinc-300">{text}</Text>
     </View>
   );
 }

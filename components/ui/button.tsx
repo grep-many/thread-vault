@@ -21,7 +21,7 @@ export const Button = ({
   // 2. Base container styles
   const containerClasses = `
     relative flex-row items-center justify-center overflow-hidden rounded-2xl py-4 px-6
-    ${variant === "secondary" ? "bg-white/10 border border-white/10" : ""}
+    ${variant === "secondary" ? "bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10" : ""}
     ${disabled || isLoading ? "opacity-50" : "opacity-100"}
     ${className}
   `;
