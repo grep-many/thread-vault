@@ -11,7 +11,6 @@ import { View } from "react-native";
 // SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-
   // useEffect(() => {
   //   (async () => {
   //     await new Promise((resolve, reject) => setTimeout(resolve, 20000))
@@ -20,9 +19,12 @@ export default function RootLayout() {
   // },[])
 
   return (
-    <View className="flex-1 dark:bg-black bg-white">
+    <View className="flex-1 bg-white dark:bg-black">
       {/* This is the base layer */}
-      <LinearGradient colors={["#09090b", "#18181b", "#000000"]} className="absolute inset-0 opacity-10" />
+      <LinearGradient
+        colors={["#09090b", "#18181b", "#000000"]}
+        className="absolute inset-0 opacity-10"
+      />
 
       {/* Set edges to top to avoid double-padding at the bottom if using tabs */}
       <SafeAreaView style={{ flex: 1 }}>

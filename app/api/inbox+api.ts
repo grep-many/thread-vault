@@ -1,6 +1,5 @@
 import { igRequest } from "@/lib/ig";
 
-// app/api/validate+api.ts
 export async function POST(request: Request) {
   try {
     const body = await request.json();

@@ -1,1 +1,1 @@
-export const SESSION_KEY="insta_session_id"
+export const SESSION_KEY = "insta_session_id";

@@ -17,7 +17,7 @@ const Input = forwardRef<TextInput, InputProps>(
     return (
       <Pressable
         onPress={() => inputRef.current?.focus()}
-        className={`w-full flex-row items-center rounded-2xl border bg-white dark:bg-zinc-950/40 px-4 ${isFocused ? "border-pink-500/50 shadow-sm shadow-pink-500/20" : "border-white/10"} ${props.editable === false ? "opacity-50" : "opacity-100"} ${containerClassName} `}
+        className={`w-full flex-row items-center rounded-2xl border bg-white px-4 dark:bg-zinc-950/40 ${isFocused ? "border-pink-500/50 shadow-sm shadow-pink-500/20" : "border-white/10"} ${props.editable === false ? "opacity-50" : "opacity-100"} ${containerClassName} `}
         style={{ minHeight: 52 }}
       >
         {/* ICON - Now just a standard flex item */}

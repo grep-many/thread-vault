@@ -9,14 +9,14 @@ declare global {
     disableClose?: boolean;
     fullScreen?: boolean;
   }
-  
-   interface ButtonProps extends PressableProps {
+
+  interface ButtonProps extends PressableProps {
     isLoading?: boolean;
     variant?: "primary" | "secondary" | "gradient";
     className?: string;
     children: React.ReactNode;
   }
-  
+
   interface InputProps extends TextInputProps {
     icon?: React.ReactNode;
   }
@@ -27,11 +27,11 @@ declare global {
     inbox: {
       threads: any[];
       has_older: any;
-      oldest_cursor:any;
+      oldest_cursor: any;
     };
   }
 
-  interface ExtractedMedia  {
+  interface ExtractedMedia {
     type: "media" | "reel" | "url";
     content_type: "photo" | "video" | "audio" | "url";
     url: string;
@@ -42,5 +42,11 @@ declare global {
     is_video?: boolean;
     is_sent: boolean;
     timestamp: number;
-  };
+  }
+  interface SessionState {
+    sessionId: string | null;
+    // Actions
+    setSession: (id: string) => void;
+    logout: () => void;
+  }
 }

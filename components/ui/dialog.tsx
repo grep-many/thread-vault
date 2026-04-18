@@ -21,32 +21,29 @@ export const Dialog = ({
     >
       <TouchableOpacity
         activeOpacity={1}
-        className="flex-1 bg-black/80 items-center justify-center"
+        className="flex-1 items-center justify-center bg-black/80"
         onPress={() => !disableClose && onClose()}
       >
         <TouchableOpacity
           activeOpacity={1}
           onPress={(e) => e.stopPropagation()}
-          className={`
-            ${fullScreen 
-              ? "h-full w-full rounded-none bg-zinc-950" 
-              : "w-[92%] max-w-sm rounded-4xl border border-white/10 bg-zinc-950 overflow-hidden shadow-2xl"}
-          `}
+          className={` ${
+            fullScreen
+              ? "h-full w-full rounded-none bg-zinc-950"
+              : "w-[92%] max-w-sm overflow-hidden rounded-4xl border border-white/10 bg-zinc-950 shadow-2xl"
+          } `}
         >
           {/* Header Section */}
           {(title || (!disableClose && !fullScreen)) && (
-            <View className="relative w-full border-b border-white/5 bg-zinc-900/50 p-5 items-center justify-center">
+            <View className="relative w-full items-center justify-center border-b border-white/5 bg-zinc-900/50 p-5">
               {typeof title === "string" ? (
-                <Text className="font-semibold text-zinc-200 text-lg">{title}</Text>
+                <Text className="text-lg font-semibold text-zinc-200">{title}</Text>
               ) : (
                 title
               )}
-              
+
               {!disableClose && !fullScreen && (
-                <TouchableOpacity
-                  onPress={onClose}
-                  className="absolute right-4 p-1"
-                >
+                <TouchableOpacity onPress={onClose} className="absolute right-4 p-1">
                   <X size={22} color="#71717a" />
                 </TouchableOpacity>
               )}
@@ -54,19 +51,11 @@ export const Dialog = ({
           )}
 
           {/* Content Body */}
-          <View
-            className={`
-              ${fullScreen 
-                ? "flex-1 p-6" 
-                : "p-6 w-full"} 
-            `}
-          >
+          <View className={` ${fullScreen ? "flex-1 p-6" : "w-full p-6"} `}>
             {/* Wrapping children in a View with w-full ensures 
                that buttons inside the Dialog use the full width available.
             */}
-            <View className="w-full">
-              {children}
-            </View>
+            <View className="w-full">{children}</View>
           </View>
 
           {/* FullScreen Close Button for Android placement */}
