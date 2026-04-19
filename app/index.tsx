@@ -17,7 +17,7 @@ export default function SessionAuth() {
     setErrorMsg("");
 
     try {
-      setTimeout(() => new Promise((resolve) => resolve), 3000);
+      setTimeout(() => new Promise((resolve) => resolve), 3000); //replace with wroking api
     } catch (err) {
       setErrorMsg("Network error. Check your connection.");
     } finally {
