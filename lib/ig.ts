@@ -1,3 +1,4 @@
+"use server";
 import https from "https";
 
 export const APP_ID = "936619743392459";

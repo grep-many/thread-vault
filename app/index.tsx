@@ -1,4 +1,4 @@
-import { Button, Dialog, Input } from "@/components/ui";
+import { Button, Dialog, Input } from "@/components";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight, HelpCircle, KeyRound, Logs } from "lucide-react-native";
 import { useState } from "react";
