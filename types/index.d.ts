@@ -22,6 +22,7 @@ declare global {
   }
 
   interface InboxPromise {
+    thread: any;
     status: "fail" | string;
     message: string;
     inbox: {
@@ -48,5 +49,11 @@ declare global {
     // Actions
     setSession: (id: string) => void;
     logout: () => void;
+  }
+
+  interface IGThreadParameter {
+    sessionId: string;
+    threadId: string;
+    cursor: string;
   }
 }

@@ -1,7 +1,5 @@
-import { View } from "react-native"
+import { View } from "react-native";
 
 export const Sidebar = () => {
-  return <View>
-    Sidebar
-  </View>
-}
+  return <View>Sidebar</View>;
+};
