@@ -1,3 +1,5 @@
-export { Input } from "./input";
-export { Dialog } from "./dialog";
-export { Button } from "./button";
+export * from "./input";
+export * from "./dialog";
+export * from "./button";
+export * from "./tab-button";
+export * from "./instagram-login-modal";
