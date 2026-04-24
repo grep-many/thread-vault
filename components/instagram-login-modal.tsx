@@ -1,8 +1,8 @@
-import React, { useRef, useState, useEffect } from "react";
-import { View, Modal, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
+import { useRef, useState, useEffect } from "react";
+import { View, Modal, ActivityIndicator, Platform } from "react-native";
 import { WebView, WebViewNavigation } from "react-native-webview";
-import { X } from "lucide-react-native";
 import CookieManager from "@react-native-cookies/cookies";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Props {
   isOpen: boolean;
@@ -30,12 +30,14 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
 
       if (cookies && cookies.sessionid) {
         const sid = cookies.sessionid.value;
-        console.log("[NativeCookie] SUCCESS: sessionid extracted.");
         onSessionExtracted(sid);
-        onClose();
       }
-    } catch (error) {
-      // Silently fail during transitions to avoid console noise
+    } catch (error: unknown) {
+      console.error(
+        `[IG-AUTH]: ${error instanceof Error ? error.message : "Something went wrong while authenticating!"}`,
+      );
+    } finally {
+      onClose();
     }
   };
 
@@ -55,17 +57,8 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-white dark:bg-zinc-950">
-        {/* Headless Floating Close Button */}
-        <TouchableOpacity
-          onPress={onClose}
-          activeOpacity={0.7}
-          className="absolute top-14 right-6 z-[100] h-10 w-10 items-center justify-center rounded-full bg-black/50"
-        >
-          <X size={20} color="white" />
-        </TouchableOpacity>
-
-        <View className="flex-1">
+      <View className="flex-1 bg-white dark:bg-black">
+        <SafeAreaView style={{ flex: 1 }}>
           <WebView
             key={`webview-${sessionKey}`}
             ref={webViewRef}
@@ -101,7 +94,7 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
               <ActivityIndicator size="large" color="#ec4899" />
             </View>
           )}
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );

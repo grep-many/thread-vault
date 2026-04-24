@@ -6,14 +6,17 @@ import "@/global.css";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { View } from "react-native";
+// import { useSession } from "@/hooks";
 // import { useEffect } from "react";
 
 // SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // const init = useSession(state => state.init);
   // useEffect(() => {
   //   (async () => {
-  //     await new Promise((resolve, reject) => setTimeout(resolve, 20000))
+      // await new Promise((resolve, reject) => setTimeout(resolve, 20000))
+      //init()
   //     SplashScreen.hideAsync();
   //   })()
   // },[])
