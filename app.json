@@ -19,7 +19,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.insta.threadvault"
+      "package": "com.sorrow.threadvault"
     },
     "web": {
       "output": "static",

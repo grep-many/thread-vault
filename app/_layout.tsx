@@ -1,39 +1,35 @@
-import {
-  // SplashScreen,
-  Stack,
-} from "expo-router";
+import { router, SplashScreen, Stack } from "expo-router";
 import "@/global.css";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { View } from "react-native";
-// import { useSession } from "@/hooks";
-// import { useEffect } from "react";
+import { useColorScheme, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useSession } from "@/hooks";
+import { useEffect } from "react";
 
-// SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // const init = useSession(state => state.init);
-  // useEffect(() => {
-  //   (async () => {
-      // await new Promise((resolve, reject) => setTimeout(resolve, 20000))
-      //init()
-  //     SplashScreen.hideAsync();
-  //   })()
-  // },[])
+  const init = useSession((state) => state.init);
+  const theme = useColorScheme();
+
+  useEffect(() => {
+    (async () => {
+      await init();
+      router.replace("/");
+      SplashScreen.hideAsync();
+    })();
+  }, []);
 
   return (
-    <View className="flex-1 bg-white dark:bg-black">
-      {/* This is the base layer */}
-      <LinearGradient
-        colors={["#09090b", "#18181b", "#000000"]}
-        className="absolute inset-0 opacity-10"
-      />
-
+    <View className="flex-1 bg-zinc-50 dark:bg-zinc-950">
+      <StatusBar style={theme === "light" ? "dark" : "light"} translucent />
       {/* Set edges to top to avoid double-padding at the bottom if using tabs */}
       <SafeAreaView style={{ flex: 1 }}>
         <Stack
           screenOptions={{
             headerShown: false,
+            animation: "fade",
+            freezeOnBlur: true,
             contentStyle: { backgroundColor: "transparent" }, // CRITICAL for Expo Router
           }}
         />

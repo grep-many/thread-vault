@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from "react";
-import { View, Modal, ActivityIndicator, Platform } from "react-native";
+import { useState } from "react";
+import { View, Modal, ActivityIndicator, Platform, StyleSheet } from "react-native";
 import { WebView, WebViewNavigation } from "react-native-webview";
 import CookieManager from "@react-native-cookies/cookies";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,42 +11,39 @@ interface Props {
 }
 
 export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) {
-  const webViewRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
-  const [sessionKey, setSessionKey] = useState(0);
 
-  // Force a fresh WebView instance every time the modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setSessionKey((prev) => prev + 1);
-      setLoading(true);
-    }
-  }, [isOpen]);
-
-  const checkNativeCookies = async (url: string) => {
+  const checkNativeCookies = async () => {
     try {
-      // 'true' uses the specialized Android CookieManager bridge
-      const cookies = await CookieManager.get(url, true);
+      // 1. IMPORTANT: Flush cookies from RAM to Disk for Android
+      if (Platform.OS === "android") {
+        await CookieManager.flush();
+      }
+
+      // 2. Get cookies for the main domain (more reliable than the full redirect URL)
+      const cookies = await CookieManager.get("https://www.instagram.com", true);
+
+      console.log("[IG-AUTH] Current Cookies:", Object.keys(cookies));
 
       if (cookies && cookies.sessionid) {
         const sid = cookies.sessionid.value;
+        console.log("[IG-AUTH] Session ID Found!");
         onSessionExtracted(sid);
+        onClose();
       }
     } catch (error: unknown) {
       console.error(
-        `[IG-AUTH]: ${error instanceof Error ? error.message : "Something went wrong while authenticating!"}`,
+        `[IG-AUTH] Cookie Error: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
-    } finally {
-      onClose();
     }
   };
 
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     const { url, loading: isNavLoading } = navState;
 
+    // Trigger check when navigation settles on an Instagram page
     if (!isNavLoading && url.includes("instagram.com")) {
-      // Small delay ensures the native OS jar is updated after the redirect
-      setTimeout(() => checkNativeCookies(url), 1000);
+      setTimeout(checkNativeCookies, 1000);
     }
   };
 
@@ -57,28 +54,24 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-white dark:bg-black">
+      <View className="flex-1 bg-white dark:bg-[#1c2a33]">
         <SafeAreaView style={{ flex: 1 }}>
           <WebView
-            key={`webview-${sessionKey}`}
-            ref={webViewRef}
             source={{ uri: "https://www.instagram.com/accounts/login/" }}
             onNavigationStateChange={handleNavigationStateChange}
             onLoadStart={() => setLoading(true)}
-            onLoadEnd={(e) => {
+            onLoadEnd={() => {
               setLoading(false);
-              checkNativeCookies(e.nativeEvent.url);
+              checkNativeCookies();
             }}
-            // Native Cookie Sync Settings
+            // Cookie configurations
             sharedCookiesEnabled={true}
             thirdPartyCookiesEnabled={true}
             domStorageEnabled={true}
             javaScriptEnabled={true}
-            // UI & Scaling
-            scalesPageToFit={true}
             style={{ flex: 1 }}
-            // Performance/Stability for Android Emulators
-            androidLayerType={Platform.OS === "android" ? "hardware" : "none"}
+            // Android Stability
+            androidLayerType={Platform.OS === "android" ? "software" : "none"}
             userAgent={
               Platform.OS === "android"
                 ? "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
@@ -88,10 +81,10 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
 
           {loading && (
             <View
-              pointerEvents="none"
-              className="absolute inset-0 z-50 items-center justify-center bg-white dark:bg-zinc-950"
+              style={StyleSheet.absoluteFill}
+              className="z-50 items-center justify-center bg-white dark:bg-[#1c2a33]"
             >
-              <ActivityIndicator size="large" color="#ec4899" />
+              <ActivityIndicator size="large" color="#3897f0" />
             </View>
           )}
         </SafeAreaView>

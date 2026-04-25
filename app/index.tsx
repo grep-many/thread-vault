@@ -1,32 +1,34 @@
 import { Button, Dialog, Input, InstaLoginModal, TabButton } from "@/components";
+import { useSession } from "@/hooks";
 import { FontAwesome6 } from "@expo/vector-icons"; // Reliable source for brand icons
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight, HelpCircle, KeyRound, Logs } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-export default function Page() {
+export default function Auth() {
   const [activeTab, setActiveTab] = useState<"insta" | "manual">("insta");
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [sessionId, setSessionId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInstaModalOpen, setIsInstaModalOpen] = useState(false);
+  const sessionId = useSession((state) => state.sessionId);
+  const setSessionId = useSession((state) => state.setSession);
 
   const handleConnect = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     if (activeTab === "insta") {
       setIsInstaModalOpen(true);
-      setIsLoading(false)
+      setIsLoading(false);
     } else {
       console.log("Manual Validate", sessionId);
-      setIsLoading(false)
+      setIsLoading(false);
     }
   };
 
   const onSessionRecieved = (id: string) => {
     setSessionId(id);
     console.log("[Extracted] Session Id", id);
-    setIsLoading(false)
+    setIsLoading(false);
   };
 
   return (
@@ -68,7 +70,7 @@ export default function Page() {
           </View>
 
           {/* Main Content Card */}
-          <View className="overflow-hidden rounded-4xl border border-black/5 bg-white p-8 shadow-xl dark:border-white/10 dark:bg-white/5">
+          <View className="overflow-hidden rounded-4xl border bg-white p-8 shadow-xl dark:border-white/10 dark:bg-white/5">
             {activeTab === "insta" ? (
               <View className="gap-6">
                 <View className="items-center py-4">
@@ -109,7 +111,7 @@ export default function Page() {
 
                   <Input
                     placeholder="Paste sessionid..."
-                    value={sessionId}
+                    value={sessionId ?? ""}
                     onChangeText={setSessionId}
                     icon={<KeyRound />}
                   />

@@ -1,4 +1,3 @@
-// store/useSession.ts
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 
