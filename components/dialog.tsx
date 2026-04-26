@@ -1,5 +1,5 @@
 import { Modal, View, Text, TouchableOpacity } from "react-native";
-import { X } from "lucide-react-native";
+import { FontAwesome6 } from "@expo/vector-icons"; // Swapped to FontAwesome6
 
 export const Dialog = ({
   isOpen,
@@ -14,7 +14,7 @@ export const Dialog = ({
       transparent
       visible={isOpen}
       animationType="fade"
-      statusBarTranslucent // Ensures backdrop covers the status bar on Android
+      statusBarTranslucent
       onRequestClose={() => {
         if (!disableClose) onClose();
       }}
@@ -46,7 +46,8 @@ export const Dialog = ({
 
               {!disableClose && !fullScreen && (
                 <TouchableOpacity onPress={onClose} className="absolute right-4 p-1">
-                  <X size={22} color="#71717a" />
+                  {/* Replaced X with xmark */}
+                  <FontAwesome6 name="xmark" size={20} color="#71717a" />
                 </TouchableOpacity>
               )}
             </View>
@@ -54,19 +55,17 @@ export const Dialog = ({
 
           {/* Content Body */}
           <View className={` ${fullScreen ? "flex-1 p-6" : "w-full p-6"} `}>
-            {/* Wrapping children in a View with w-full ensures 
-               that buttons inside the Dialog use the full width available.
-            */}
             <View className="w-full">{children}</View>
           </View>
 
-          {/* FullScreen Close Button for Android placement */}
+          {/* FullScreen Close Button */}
           {fullScreen && !disableClose && (
             <TouchableOpacity
               onPress={onClose}
-              className="absolute top-10 right-6 z-50 rounded-full bg-black/10 p-3 dark:bg-white/10"
+              className="absolute top-12 right-6 z-50 rounded-full bg-black/10 p-3 dark:bg-white/10"
             >
-              <X size={24} color="white" />
+              {/* Replaced X with xmark */}
+              <FontAwesome6 name="xmark" size={22} color="white" />
             </TouchableOpacity>
           )}
         </TouchableOpacity>

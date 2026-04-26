@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, Text, FlatList, Pressable, Image } from "react-native";
-import { Search } from "lucide-react-native";
-import { Input } from "@/components"; // Using the Input component from previous step
+import { FontAwesome6 } from "@expo/vector-icons"; // Swapped to FontAwesome6
+import { Input } from "@/components";
 import { router } from "expo-router";
 
 const MOCK_CHATS = [
@@ -25,7 +25,7 @@ const MOCK_CHATS = [
 
 export default function Inbox() {
   const [search, setSearch] = useState("");
-  
+
   const openThread = (id: string) => {
     router.push({
       pathname: "/inbox/[threadId]",
@@ -46,7 +46,8 @@ export default function Inbox() {
           placeholder="Search thread"
           value={search}
           onChangeText={setSearch}
-          icon={<Search size={18} color="#71717a" />}
+          /* Replaced Search with magnifying-glass */
+          icon={<FontAwesome6 name="magnifying-glass" size={16} color="#71717a" />}
         />
       </View>
 
@@ -55,12 +56,10 @@ export default function Inbox() {
         data={MOCK_CHATS}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 40 }}
-        renderItem={({ item }) => (
-          <ThreadTile item={item} onPress={() => openThread(item.id)} />
-        )}
-        initialNumToRender={10} 
-        windowSize={5} 
-        maxToRenderPerBatch={10} 
+        renderItem={({ item }) => <ThreadTile item={item} onPress={() => openThread(item.id)} />}
+        initialNumToRender={10}
+        windowSize={5}
+        maxToRenderPerBatch={10}
         removeClippedSubviews={true}
         ItemSeparatorComponent={() => <View className="h-1.5" />}
       />
