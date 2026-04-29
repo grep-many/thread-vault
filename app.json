@@ -7,33 +7,33 @@
     "icon": "./assets/images/icon.png",
     "scheme": "threadvault",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#1C2A33"
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.sorrow.threadvault"
+      "package": "com.ranveersnig.threadvault"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "imageWidth":200,
+          "backgroundColor": "#F8F9FF",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#0F0C1D"
           }
         }
       ]

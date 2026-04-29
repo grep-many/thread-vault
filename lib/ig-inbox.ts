@@ -12,6 +12,8 @@ export async function IGInbox({ sessionId, cursor }: Omit<IGThreadParameter, "th
 
     if (data.status === "fail") throw new Error(data.message || "Instagram API failed!");
 
+    console.log(data, cursor);//[DEBUG]
+
     return {
       error: null,
       data: {

@@ -131,6 +131,7 @@ export const extractItem = (item: any, peerIds: string[]): ExtractedMedia | null
     }
 
     if (extracted.url) {
+      console.log(extracted)//[DEBUG]
       return extracted;
     }
     return null;

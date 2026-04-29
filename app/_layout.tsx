@@ -15,7 +15,7 @@ export default function RootLayout() {
   useEffect(() => {
     (async () => {
       await init();
-      router.replace("/inbox/123");
+      router.replace("/inbox/1");
       SplashScreen.hideAsync();
     })();
   }, []);

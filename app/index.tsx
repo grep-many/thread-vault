@@ -3,7 +3,7 @@ import { useSession } from "@/hooks";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {  Pressable, ScrollView, Text, View } from "react-native";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<"insta" | "manual">("insta");
@@ -27,6 +27,8 @@ export default function Auth() {
   function onSessionRecieved(id: string) {
     setSessionId(id);
     console.log("[Extracted] Session Id", id);
+    // validate the session-id
+    
     setIsLoading(false);
   }
 
@@ -42,6 +44,7 @@ export default function Auth() {
                 className="h-16 w-16 items-center justify-center"
               >
                 {/* Replaced Logs with FontAwesome list-ul */}
+                {/* <Image source={require("../assets/icon.png")} style={{ width: 64, height: 64 }} /> */}
                 <FontAwesome6 name="list-ul" size={26} color="white" />
               </LinearGradient>
             </View>
