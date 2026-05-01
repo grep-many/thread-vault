@@ -1,14 +1,15 @@
 import { FontAwesome6 } from "@expo/vector-icons";
-import { Pressable, Text } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 interface Props {
   active: boolean;
   label: string;
   icon: string;
+  badge?: number;
   onPress: () => void;
 }
 
-export function TabButton({ active, label, icon, onPress }: Props) {
+export function TabButton({ active, label, icon, badge, onPress }: Props) {
   return (
     <Pressable
       onPress={onPress}
@@ -24,6 +25,13 @@ export function TabButton({ active, label, icon, onPress }: Props) {
       >
         {label}
       </Text>
+      {badge !== undefined && (
+        <View className={`rounded-full px-1.5 py-0.5 ${active ? "bg-zinc-100 dark:bg-zinc-700" : "bg-zinc-200 dark:bg-zinc-800"}`}>
+          <Text className={`text-[10px] font-bold ${active ? "text-zinc-900 dark:text-white" : "text-zinc-500"}`}>
+            {badge}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }

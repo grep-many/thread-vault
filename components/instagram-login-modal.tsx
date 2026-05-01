@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { View, Modal, ActivityIndicator, Platform, StyleSheet } from "react-native";
 import { WebView, WebViewNavigation } from "react-native-webview";
 import CookieManager from "@react-native-cookies/cookies";
@@ -7,11 +7,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSessionExtracted: (sessionId: string) => void;
+  onSessionExtracted: (sessionId: string, csrfToken?: string, appId?: string) => void;
 }
 
 export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) {
   const [loading, setLoading] = useState(true);
+  const appIdRef = useRef<string | undefined>(undefined);
 
   const checkNativeCookies = async () => {
     try {
@@ -20,15 +21,17 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
         await CookieManager.flush();
       }
 
-      // 2. Get cookies for the main domain (more reliable than the full redirect URL)
+      // 2. Get cookies for the main domain
       const cookies = await CookieManager.get("https://www.instagram.com", true);
 
       console.log("[IG-AUTH] Current Cookies:", Object.keys(cookies));
 
       if (cookies && cookies.sessionid) {
         const sid = cookies.sessionid.value;
-        console.log("[IG-AUTH] Session ID Found!");
-        onSessionExtracted(sid);
+        const csrf = cookies.csrftoken?.value;
+        console.log("[IG-AUTH] Session ID Found!", sid, csrf, appIdRef.current);
+
+        onSessionExtracted(sid, csrf, appIdRef.current);
         onClose();
       }
     } catch (error: unknown) {
@@ -41,11 +44,25 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     const { url, loading: isNavLoading } = navState;
 
-    // Trigger check when navigation settles on an Instagram page
     if (!isNavLoading && url.includes("instagram.com")) {
       setTimeout(checkNativeCookies, 1000);
     }
   };
+
+  const INJECTED_JAVASCRIPT = `
+    (function() {
+      try {
+        var appId = "936619743392459"; // Fallback default
+        var str = document.documentElement.innerHTML;
+        var match = str.match(/(?:"appId"|app_id)["\\s:=]+(\\d{15,})/);
+        if (match && match[1]) {
+          appId = match[1];
+        }
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'IG_APP_ID', appId: appId }));
+      } catch (e) {}
+    })();
+    true;
+  `;
 
   return (
     <Modal
@@ -64,13 +81,20 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
               setLoading(false);
               checkNativeCookies();
             }}
-            // Cookie configurations
+            injectedJavaScript={INJECTED_JAVASCRIPT}
+            onMessage={(event) => {
+              try {
+                const data = JSON.parse(event.nativeEvent.data);
+                if (data.type === 'IG_APP_ID' && data.appId) {
+                  appIdRef.current = data.appId;
+                }
+              } catch (e) { }
+            }}
             sharedCookiesEnabled={true}
             thirdPartyCookiesEnabled={true}
             domStorageEnabled={true}
             javaScriptEnabled={true}
             style={{ flex: 1 }}
-            // Android Stability
             androidLayerType={Platform.OS === "android" ? "software" : "none"}
             userAgent={
               Platform.OS === "android"
