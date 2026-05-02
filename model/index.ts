@@ -5,6 +5,8 @@ import schema from "./schema";
 import Inbox from "./inbox";
 import Media from "./media";
 
+import SyncState from "./sync-state";
+
 // 1. The Adapter handles the physical file on the phone
 const adapter = new SQLiteAdapter({
   schema,
@@ -14,5 +16,5 @@ const adapter = new SQLiteAdapter({
 // 2. The Database instance is what you'll use in your components
 export const database = new Database({
   adapter,
-  modelClasses: [Inbox, Media],
+  modelClasses: [Inbox, Media, SyncState],
 });

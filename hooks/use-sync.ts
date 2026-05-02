@@ -1,82 +1,27 @@
-import { create } from "zustand";
-import { database } from "@/model";
-import SyncState from "@/model/sync-state";
-import Inbox from "@/model/inbox";
-import { Q } from "@nozbe/watermelondb";
-import { useSession } from "./use-session";
 import { IGInbox } from "@/lib/ig-inbox";
 import { IGThread } from "@/lib/ig-thread";
-import * as Notifications from 'expo-notifications';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    // Add these two lines to satisfy the new type requirements:
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
-import { Platform } from 'react-native';
-
-if (Platform.OS === 'android') {
-  Notifications.setNotificationChannelAsync('sync', {
-    name: 'Background Sync',
-    importance: Notifications.AndroidImportance.HIGH,
-  });
-}
-
-let activeNotificationId: string | null = null;
-
-async function requestPermissionsAsync() {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  return finalStatus === 'granted';
-}
-
-const SYNC_NOTIFICATION_ID = 'threadvault-sync';
-
-async function updateNotification(status: string) {
-  try {
-    const hasPermission = await requestPermissionsAsync();
-    if (!hasPermission) return;
-
-    activeNotificationId = await Notifications.scheduleNotificationAsync({
-      identifier: SYNC_NOTIFICATION_ID,
-      content: {
-        title: 'ThreadVault Sync',
-        body: status,
-        autoDismiss: false,
-        sticky: true,
-      },
-      trigger: {
-        channelId: Platform.OS === 'android' ? 'sync' : undefined,
-      } as any, // bypassing strict trigger type for channelId
-    });
-  } catch (error) {
-    console.error("Failed to schedule notification:", error);
-  }
-}
-
-async function clearNotification() {
-  await Notifications.dismissNotificationAsync(SYNC_NOTIFICATION_ID);
-  activeNotificationId = null;
-}
+import { database } from "@/model";
+import Inbox from "@/model/inbox";
+import SyncState from "@/model/sync-state";
+import { Q } from "@nozbe/watermelondb";
+import { create } from "zustand";
+import { useSession } from "./use-session";
 
 interface SyncEngineState {
   isSyncing: boolean;
   isPaused: boolean;
   progressStatus: string;
   currentSyncingThreadId: string | null;
-  startSync: () => Promise<void>;
+  syncInbox: () => Promise<void>;
+  syncThreadItems: (threadIds: string[]) => Promise<void>;
   pauseSync: () => void;
   syncSingleThread: (threadId: string, username: string) => Promise<void>;
+  totalItemsScanned: number;
+  mediaCount: number;
+  reelCount: number;
+  linkCount: number;
+  incrementCounts: (scanned: number, media: number, reel: number, link: number) => void;
+  resetCounts: () => void;
 }
 
 export const useSync = create<SyncEngineState>((set, get) => ({
@@ -84,15 +29,34 @@ export const useSync = create<SyncEngineState>((set, get) => ({
   isPaused: false,
   progressStatus: "Idle",
   currentSyncingThreadId: null,
+  totalItemsScanned: 0,
+  mediaCount: 0,
+  reelCount: 0,
+  linkCount: 0,
+
+  incrementCounts: (scanned, media, reel, link) => set((state) => ({
+    totalItemsScanned: state.totalItemsScanned + scanned,
+    mediaCount: state.mediaCount + media,
+    reelCount: state.reelCount + reel,
+    linkCount: state.linkCount + link,
+  })),
+
+  resetCounts: () => set({
+    totalItemsScanned: 0,
+    mediaCount: 0,
+    reelCount: 0,
+    linkCount: 0,
+  }),
 
   syncSingleThread: async (threadId: string, username: string) => {
     if (get().isSyncing) return; // Don't interrupt global sync
 
-    set({ currentSyncingThreadId: threadId, progressStatus: `Syncing items for: ${username}` });
-    
+    get().resetCounts();
+    set({ isSyncing: true, isPaused: false, currentSyncingThreadId: threadId, progressStatus: `Syncing items for: ${username}` });
+
     const { sessionId, csrfToken, appId } = useSession.getState();
     if (!sessionId) {
-      set({ currentSyncingThreadId: null, progressStatus: "No session found" });
+      set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "No session found" });
       return;
     }
 
@@ -119,7 +83,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
       };
 
       let threadCursor = await getCursor(`thread_${threadId}`);
-      
+
       if (!threadCursor) {
         await database.write(async () => {
           const oldItems = await database.get('media').query(Q.where('inbox_id', threadId)).fetch();
@@ -149,6 +113,10 @@ export const useSync = create<SyncEngineState>((set, get) => ({
           break;
         }
 
+        const itemsScanned = threadRes.data?.items?.length || 0;
+        const counts = threadRes.data?.counts || { media: 0, reel: 0, link: 0 };
+        get().incrementCounts(itemsScanned, counts.media, counts.reel, counts.link);
+
         threadCursor = threadRes.data?.oldest_cursor || "";
         hasMoreThread = threadRes.data?.has_older === true;
 
@@ -157,23 +125,26 @@ export const useSync = create<SyncEngineState>((set, get) => ({
         }
       }
 
-      set({ currentSyncingThreadId: null, progressStatus: "Thread sync complete" });
+      if (!get().isPaused) {
+        set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Thread sync complete" });
+      } else {
+        // Leave it paused
+      }
     } catch (e) {
       console.error("Single Thread Sync Error", e);
-      set({ currentSyncingThreadId: null, progressStatus: "Error syncing thread" });
+      set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Error syncing thread" });
     }
   },
 
-  startSync: async () => {
+  syncInbox: async () => {
     if (get().isSyncing) return;
 
-    set({ isSyncing: true, isPaused: false, progressStatus: "Starting sync...", currentSyncingThreadId: null });
-    await updateNotification("Starting sync...");
+    get().resetCounts();
+    set({ isSyncing: true, isPaused: false, progressStatus: "Starting inbox sync...", currentSyncingThreadId: null });
 
     const { sessionId, csrfToken, appId } = useSession.getState();
     if (!sessionId) {
       set({ isSyncing: false, progressStatus: "No session found" });
-      await clearNotification();
       return;
     }
 
@@ -199,7 +170,6 @@ export const useSync = create<SyncEngineState>((set, get) => ({
         });
       };
 
-      // PHASE 1: Fetch all inbox threads
       let inboxCursor = await getCursor("inbox_root");
       let hasMoreInbox = true;
 
@@ -207,7 +177,6 @@ export const useSync = create<SyncEngineState>((set, get) => ({
         if (get().isPaused) break;
 
         set({ progressStatus: "Crawling inbox threads..." });
-        await updateNotification("Crawling inbox threads...");
 
         const res = await IGInbox({ sessionId, cursor: inboxCursor, csrfToken: csrfToken || undefined, appId: appId || undefined });
 
@@ -217,7 +186,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
         }
 
         const threads = res.data?.threads || [];
-        
+
         if (threads.length > 0) {
           const allExisting = await database.get<Inbox>("inbox").query().fetch();
           const existingIds = new Set(allExisting.map(t => t.threadId));
@@ -233,7 +202,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
                   inbox.pfpUrl = thread.users?.[0]?.profile_pic_url || "";
                   inbox.expired_at = Date.now() + 1000 * 60 * 60 * 24 * 7;
                 })
-            );
+              );
             if (batchOps.length > 0) {
               await database.batch(...batchOps);
             }
@@ -248,80 +217,121 @@ export const useSync = create<SyncEngineState>((set, get) => ({
         }
       }
 
-      // PHASE 2: Fetch items for each thread
       if (!get().isPaused) {
-        const allThreads = await database.get<Inbox>("inbox").query().fetch();
+        set({ progressStatus: "Inbox sync complete", isSyncing: false, currentSyncingThreadId: null });
+      } else {
+        set({ progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null });
+      }
 
-        for (const thread of allThreads) {
-          if (get().isPaused) break;
+    } catch (e) {
+      console.error("Inbox Sync Error", e);
+      set({ isSyncing: false, progressStatus: "Error during inbox sync", currentSyncingThreadId: null });
+    }
+  },
 
-          set({
-            progressStatus: `Syncing items for: ${thread.username}`,
-            currentSyncingThreadId: thread.threadId
-          });
-          await updateNotification(`Syncing items for: ${thread.username}`);
+  syncThreadItems: async (threadIds: string[]) => {
+    if (get().isSyncing) return;
 
-          let threadCursor = await getCursor(`thread_${thread.threadId}`);
-          
-          if (!threadCursor) {
-            await database.write(async () => {
-              const oldItems = await database.get('media').query(Q.where('inbox_id', thread.threadId)).fetch();
-              if (oldItems.length > 0) {
-                const batchOps = oldItems.map(item => item.prepareDestroyPermanently());
-                await database.batch(...batchOps);
-              }
+    get().resetCounts();
+    set({ isSyncing: true, isPaused: false, progressStatus: "Starting thread sync...", currentSyncingThreadId: null });
+
+    const { sessionId, csrfToken, appId } = useSession.getState();
+    if (!sessionId) {
+      set({ isSyncing: false, progressStatus: "No session found" });
+      return;
+    }
+
+    try {
+      const getCursor = async (targetId: string) => {
+        const records = await database.get<SyncState>("sync_state").query(Q.where("target_id", targetId)).fetch();
+        return records.length > 0 ? records[0].cursor : "";
+      };
+
+      const setCursor = async (targetId: string, cursor: string) => {
+        await database.write(async () => {
+          const records = await database.get<SyncState>("sync_state").query(Q.where("target_id", targetId)).fetch();
+          if (records.length > 0) {
+            await records[0].update((rec) => {
+              rec.cursor = cursor;
+            });
+          } else {
+            await database.get<SyncState>("sync_state").create((rec) => {
+              rec.targetId = targetId;
+              rec.cursor = cursor;
             });
           }
+        });
+      };
 
-          let hasMoreThread = true;
+      const allThreads = await database.get<Inbox>("inbox").query(
+        Q.where('thread_id', Q.oneOf(threadIds))
+      ).fetch();
 
-          while (hasMoreThread) {
-            if (get().isPaused) break;
+      for (const thread of allThreads) {
+        if (get().isPaused) break;
 
-            const threadRes = await IGThread({
-              sessionId,
-              threadId: thread.threadId,
-              cursor: threadCursor,
-              inboxId: thread.threadId,
-              csrfToken: csrfToken || undefined,
-              appId: appId || undefined
-            });
+        set({
+          progressStatus: `Syncing items for: ${thread.username}`,
+          currentSyncingThreadId: thread.threadId
+        });
 
-            if (threadRes.error) {
-              console.error("Thread sync error:", threadRes.error);
-              break;
+        let threadCursor = await getCursor(`thread_${thread.threadId}`);
+
+        if (!threadCursor) {
+          await database.write(async () => {
+            const oldItems = await database.get('media').query(Q.where('inbox_id', thread.threadId)).fetch();
+            if (oldItems.length > 0) {
+              const batchOps = oldItems.map(item => item.prepareDestroyPermanently());
+              await database.batch(...batchOps);
             }
+          });
+        }
 
-            threadCursor = threadRes.data?.oldest_cursor || "";
-            hasMoreThread = threadRes.data?.has_older === true;
+        let hasMoreThread = true;
 
-            if (threadCursor) {
-              await setCursor(`thread_${thread.threadId}`, threadCursor);
-            }
+        while (hasMoreThread) {
+          if (get().isPaused) break;
+
+          const threadRes = await IGThread({
+            sessionId,
+            threadId: thread.threadId,
+            cursor: threadCursor,
+            inboxId: thread.threadId,
+            csrfToken: csrfToken || undefined,
+            appId: appId || undefined
+          });
+
+          if (threadRes.error) {
+            console.error("Thread sync error:", threadRes.error);
+            break;
+          }
+
+          const itemsScanned = threadRes.data?.items?.length || 0;
+          const counts = threadRes.data?.counts || { media: 0, reel: 0, link: 0 };
+          get().incrementCounts(itemsScanned, counts.media, counts.reel, counts.link);
+
+          threadCursor = threadRes.data?.oldest_cursor || "";
+          hasMoreThread = threadRes.data?.has_older === true;
+
+          if (threadCursor) {
+            await setCursor(`thread_${thread.threadId}`, threadCursor);
           }
         }
       }
 
       if (!get().isPaused) {
         set({ progressStatus: "Sync complete", isSyncing: false, currentSyncingThreadId: null });
-        await updateNotification("Sync complete");
-        setTimeout(() => clearNotification(), 2000);
       } else {
         set({ progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null });
-        await updateNotification("Sync paused");
-        setTimeout(() => clearNotification(), 2000);
       }
 
     } catch (e) {
-      console.error("Sync Engine Error", e);
-      set({ isSyncing: false, progressStatus: "Error during sync", currentSyncingThreadId: null });
-      await clearNotification();
+      console.error("Thread Items Sync Error", e);
+      set({ isSyncing: false, progressStatus: "Error during thread items sync", currentSyncingThreadId: null });
     }
   },
 
   pauseSync: () => {
     set({ isPaused: true, isSyncing: false, progressStatus: "Paused", currentSyncingThreadId: null });
-    updateNotification("Sync paused");
-    setTimeout(() => clearNotification(), 2000);
   }
 }));
