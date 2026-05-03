@@ -1,1 +1,3 @@
-export const SESSION_KEY = "insta_session_id";
+import ICONPNG from "@/assets/icon.png";
+
+export { ICONPNG }

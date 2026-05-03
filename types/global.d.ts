@@ -33,7 +33,8 @@ declare global {
   }
 
   interface ExtractedMedia {
-    type: "media" | "reel" | "url";
+    type: "media" | "reel" | "link";
+    item_type: string;
     content_type: "photo" | "video" | "audio" | "url";
     url: string;
     preview?: string;
@@ -46,17 +47,22 @@ declare global {
   }
   interface SessionState {
     sessionId: string | null;
+    csrfToken: string | null;
+    appId: string | null;
+    isLoading?: boolean;
+    init?: () => Promise<any>;
     // Actions
-    setSession: (id: string) => void;
+    setSession: (id: string, csrf?: string, app_id?: string) => void;
     logout: () => void;
   }
 
   interface IGThreadParameter {
     sessionId: string;
+    csrfToken?: string;
+    appId?: string;
     threadId: string;
     cursor: string;
+    inboxId?: string;
+    expiredAt?: number;
   }
-
-  
-
 }
