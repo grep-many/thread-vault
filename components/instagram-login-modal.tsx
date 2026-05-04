@@ -85,10 +85,12 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
             onMessage={(event) => {
               try {
                 const data = JSON.parse(event.nativeEvent.data);
-                if (data.type === 'IG_APP_ID' && data.appId) {
+                if (data.type === "IG_APP_ID" && data.appId) {
                   appIdRef.current = data.appId;
                 }
-              } catch (e) { }
+              } catch {
+                console.error("Something went wrong while signing up!")
+              }
             }}
             sharedCookiesEnabled={true}
             thirdPartyCookiesEnabled={true}

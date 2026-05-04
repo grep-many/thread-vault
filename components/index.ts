@@ -5,3 +5,4 @@ export * from "./tab-button";
 export * from "./instagram-login-modal";
 export * from "./ThreadTile";
 export * from "./ScrapePromptDialog";
+export * from "./audio-player";
