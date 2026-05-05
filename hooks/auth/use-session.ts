@@ -12,7 +12,7 @@ interface SessionState {
   isLoading: boolean;
   init: () => Promise<{ removedMedia: Media[]; removedThreads: Inbox[] }>;
   setSession: (id: string, csrf?: string, app_id?: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useSession = create<SessionState>((set) => ({
@@ -27,21 +27,21 @@ export const useSession = create<SessionState>((set) => ({
     const app_id = await SecureStore.getItemAsync("appId");
     set({ sessionId: id, csrfToken: csrf, appId: app_id, isLoading: false });
 
-    // Perform database cleanup
+    // Perform database cleanup of expired records
     const now = Date.now();
     let removedMedia: Media[] = [];
     let removedThreads: Inbox[] = [];
 
     try {
-      const expiredMedia = await database.get<Media>("media").query(
-        Q.where("expired_at", Q.notEq(null)),
-        Q.where("expired_at", Q.lt(now))
-      ).fetch();
+      const expiredMedia = await database
+        .get<Media>("media")
+        .query(Q.where("expired_at", Q.notEq(null)), Q.where("expired_at", Q.lt(now)))
+        .fetch();
 
-      const expiredThreads = await database.get<Inbox>("inbox").query(
-        Q.where("expired_at", Q.notEq(null)),
-        Q.where("expired_at", Q.lt(now))
-      ).fetch();
+      const expiredThreads = await database
+        .get<Inbox>("inbox")
+        .query(Q.where("expired_at", Q.notEq(null)), Q.where("expired_at", Q.lt(now)))
+        .fetch();
 
       removedMedia = [...expiredMedia];
       removedThreads = [...expiredThreads];
@@ -49,14 +49,14 @@ export const useSession = create<SessionState>((set) => ({
       if (expiredMedia.length > 0 || expiredThreads.length > 0) {
         await database.write(async () => {
           const ops = [
-            ...expiredMedia.map(m => m.prepareDestroyPermanently()),
-            ...expiredThreads.map(t => t.prepareDestroyPermanently())
+            ...expiredMedia.map((m) => m.prepareDestroyPermanently()),
+            ...expiredThreads.map((t) => t.prepareDestroyPermanently()),
           ];
           await database.batch(...ops);
         });
       }
     } catch (err) {
-      console.error("Cleanup error:", err);
+      console.error("[useSession] Cleanup error:", err);
     }
 
     return { removedMedia, removedThreads };
