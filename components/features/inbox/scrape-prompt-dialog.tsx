@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, Image } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
-import { Button, Dialog } from "@/components";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import InboxModel from "@/model/inbox";
 
 interface ScrapePromptDialogProps {
@@ -60,7 +61,7 @@ export function ScrapePromptDialog({ isOpen, onClose, chats, onConfirm }: Scrape
             >
               <View className="relative">
                 <Image
-                  source={{ uri: item.pfpUrl || "https://i.pravatar.cc/150" }}
+                  source={{ uri: item.pfpUrl || undefined }}
                   className="mb-2 h-16 w-16 rounded-full bg-zinc-200"
                 />
                 <View className="absolute right-0 bottom-2 h-6 w-6 items-center justify-center rounded-full border-[3px] border-white bg-white dark:border-zinc-900 dark:bg-zinc-900">

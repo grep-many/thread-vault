@@ -16,14 +16,12 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
 
   const checkNativeCookies = async () => {
     try {
-      // 1. IMPORTANT: Flush cookies from RAM to Disk for Android
+      // Flush cookies from RAM to disk on Android before reading
       if (Platform.OS === "android") {
         await CookieManager.flush();
       }
 
-      // 2. Get cookies for the main domain
       const cookies = await CookieManager.get("https://www.instagram.com", true);
-
       console.log("[IG-AUTH] Current Cookies:", Object.keys(cookies));
 
       if (cookies && cookies.sessionid) {
@@ -43,7 +41,6 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
 
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     const { url, loading: isNavLoading } = navState;
-
     if (!isNavLoading && url.includes("instagram.com")) {
       setTimeout(checkNativeCookies, 1000);
     }
@@ -89,7 +86,7 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
                   appIdRef.current = data.appId;
                 }
               } catch {
-                console.error("Something went wrong while signing up!")
+                console.error("Something went wrong while signing up!");
               }
             }}
             sharedCookiesEnabled={true}

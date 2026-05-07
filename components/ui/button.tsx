@@ -31,10 +31,8 @@ export const Button = ({
       disabled={disabled || isLoading}
       style={(state) => [
         {
-          // Instead of { pressed }, use state.pressed
           transform: [{ scale: state.pressed && !disabled ? 0.97 : 1 }],
         },
-        // Spread the state to the parent style prop if it's a function
         typeof style === "function" ? style(state) : style,
       ]}
       {...props}
@@ -46,7 +44,7 @@ export const Button = ({
             colors={gradientColors[variant as "gradient" | "primary"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill} // Clean way to do absolute inset-0
+            style={StyleSheet.absoluteFill}
           />
         )}
 
@@ -55,8 +53,6 @@ export const Button = ({
           {isLoading ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
-            // Ensure children are correctly rendered
-            // Note: If passing raw text, wrap it in <Text> in the parent
             children
           )}
         </View>

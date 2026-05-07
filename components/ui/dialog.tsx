@@ -1,5 +1,5 @@
 import { Modal, View, Text, TouchableOpacity } from "react-native";
-import { FontAwesome6 } from "@expo/vector-icons"; // Swapped to FontAwesome6
+import { FontAwesome6 } from "@expo/vector-icons";
 
 export const Dialog = ({
   isOpen,
@@ -46,7 +46,6 @@ export const Dialog = ({
 
               {!disableClose && !fullScreen && (
                 <TouchableOpacity onPress={onClose} className="absolute right-4 p-1">
-                  {/* Replaced X with xmark */}
                   <FontAwesome6 name="xmark" size={20} color="#71717a" />
                 </TouchableOpacity>
               )}
@@ -64,7 +63,6 @@ export const Dialog = ({
               onPress={onClose}
               className="absolute top-12 right-6 z-50 rounded-full bg-black/10 p-3 dark:bg-white/10"
             >
-              {/* Replaced X with xmark */}
               <FontAwesome6 name="xmark" size={22} color="white" />
             </TouchableOpacity>
           )}
