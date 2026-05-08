@@ -1,6 +1,8 @@
 import { PressableProps, TextInputProps } from "react-native";
 
 declare global {
+  // ─── UI Component Props ────────────────────────────────────────────────────
+
   interface DialogProps {
     isOpen: boolean;
     onClose: () => void;
@@ -21,14 +23,16 @@ declare global {
     icon?: React.ReactNode;
   }
 
+  // ─── Instagram API Types ───────────────────────────────────────────────────
+
   interface InboxPromise {
-    thread: any;
+    thread: unknown;
     status: "fail" | string;
     message: string;
     inbox: {
-      threads: any[];
-      has_older: any;
-      oldest_cursor: any;
+      threads: unknown[];
+      has_older: boolean;
+      oldest_cursor: string;
     };
   }
 
@@ -45,16 +49,6 @@ declare global {
     is_sent: boolean;
     timestamp: number;
   }
-  interface SessionState {
-    sessionId: string | null;
-    csrfToken: string | null;
-    appId: string | null;
-    isLoading?: boolean;
-    init?: () => Promise<any>;
-    // Actions
-    setSession: (id: string, csrf?: string, app_id?: string) => void;
-    logout: () => void;
-  }
 
   interface IGThreadParameter {
     sessionId: string;
@@ -64,5 +58,67 @@ declare global {
     cursor: string;
     inboxId?: string;
     expiredAt?: number;
+  }
+
+  // ─── Media Grid ────────────────────────────────────────────────────────────
+
+  type TabType = "media" | "reel" | "link";
+
+  type MediaGridItemProps = {
+    item: import("@/model/media").default;
+    isSelected: boolean;
+    isSelectMode: boolean;
+    profileImageUrl?: string | null;
+    onOpen: (item: import("@/model/media").default) => void;
+    onToggleSelection: (id: string) => void;
+    onLongPress: (id: string) => void;
+  };
+
+  // ─── Unsend Types ──────────────────────────────────────────────────────────
+
+  /**
+   * Minimal input needed to queue an unsend job.
+   * The queue hook derives all state from this.
+   */
+  interface UnsendJobInput {
+    itemId: string;
+    threadId: string;
+  }
+
+  /**
+   * A single job in the unsend processing queue.
+   * Carries its current processing status and optional error message.
+   */
+  interface UnsendJob extends UnsendJobInput {
+    status: "pending" | "processing" | "success" | "failed";
+    error?: string;
+  }
+
+  /** Snapshot of overall unsend progress for the progress modal. */
+  interface UnsendProgress {
+    total: number;
+    completed: number;
+    successCount: number;
+    failureCount: number;
+    currentItemId: string | null;
+  }
+  // ─── Toast ────────────────────────────────────────────────────────────────
+
+  /**
+   * Severity level for a toast notification.
+   * Mirrors the ToastType exported from components/ui/toast.tsx.
+   */
+  type ToastType = "success" | "error" | "info";
+
+  /**
+   * A single toast notification entry managed by ToastProvider.
+   * Mirrors the ToastMessage exported from components/ui/toast.tsx.
+   */
+  interface ToastMessage {
+    id: string;
+    message: string;
+    type: ToastType;
+    /** Display duration in ms. Defaults to 3000. */
+    duration?: number;
   }
 }
