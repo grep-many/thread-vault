@@ -28,7 +28,7 @@ export function UnsendProgressModal({
   onDismiss,
   onComplete,
 }: UnsendProgressModalProps) {
-  const { isRunning, isDone, jobs, currentItemId, successCount, failureCount, isCancelled, cancel, reset } =
+  const { isRunning, isDone, jobs, currentItemId, successCount, failureCount, isCancelled, isCoolingDown, cooldownTimeLeft, cancel, reset } =
     useUnsendQueue();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -97,6 +97,8 @@ export function UnsendProgressModal({
     ? isCancelled
       ? "Cancelled"
       : "Complete!"
+    : isCoolingDown
+    ? `Rate Limited. Cooling down (${cooldownTimeLeft}s)…`
     : isRunning
     ? `Unsending ${completed + 1} of ${total}…`
     : "Preparing…";
@@ -126,9 +128,9 @@ export function UnsendProgressModal({
         <View style={styles.headerRow}>
           <View style={styles.iconWrapper}>
             <FontAwesome6
-              name={isDone && !isCancelled ? "circle-check" : "trash-can"}
+              name={isDone && !isCancelled ? "circle-check" : isCoolingDown ? "hourglass-half" : "trash-can"}
               size={20}
-              color={isDone && !isCancelled ? "#22c55e" : "#ec4899"}
+              color={isDone && !isCancelled ? "#22c55e" : isCoolingDown ? "#f59e0b" : "#ec4899"}
             />
           </View>
           <View style={styles.headerText}>
@@ -146,7 +148,7 @@ export function UnsendProgressModal({
               styles.progressFill,
               {
                 width: progressBarWidth,
-                backgroundColor: isDone && !isCancelled ? "#22c55e" : "#ec4899",
+                backgroundColor: isDone && !isCancelled ? "#22c55e" : isCoolingDown ? "#f59e0b" : "#ec4899",
               },
             ]}
           />
@@ -183,7 +185,7 @@ export function UnsendProgressModal({
                 ) : job.status === "failed" ? (
                   <FontAwesome6 name="circle-xmark" size={14} color="#ef4444" />
                 ) : job.status === "processing" ? (
-                  <FontAwesome6 name="rotate" size={14} color="#ec4899" />
+                  <FontAwesome6 name="rotate" size={14} color={isCoolingDown ? "#f59e0b" : "#ec4899"} />
                 ) : (
                   <View style={styles.jobPending} />
                 )}
@@ -192,8 +194,8 @@ export function UnsendProgressModal({
                 {job.itemId}
               </Text>
               {job.itemId === currentItemId && job.status === "processing" && (
-                <View style={styles.processingBadge}>
-                  <Text style={styles.processingText}>Now</Text>
+                <View style={[styles.processingBadge, isCoolingDown && { backgroundColor: "#f59e0b" }]}>
+                  <Text style={styles.processingText}>{isCoolingDown ? "Waiting" : "Now"}</Text>
                 </View>
               )}
             </View>
