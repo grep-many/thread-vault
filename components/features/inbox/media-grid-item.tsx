@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { Image, Pressable, StyleSheet, View, Text } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
-import Media from "@/model/media";
 
 /**
  * A single cell in the media grid. Memoized aggressively to avoid

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { FontAwesome6 } from "@expo/vector-icons";
 import { View, Text } from "react-native";
 
 interface HelpDialogProps {
