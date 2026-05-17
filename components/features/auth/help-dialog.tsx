@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { View, Text } from "react-native";
@@ -12,9 +13,9 @@ const STEPS = [
   "Right-click and select 'Inspect' (F12)",
   "Navigate to Application > Cookies",
   "Find and copy the 'sessionid' value",
-];
+] as const;
 
-export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
+export const HelpDialog = memo(function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Manual Setup Guide">
       <View className="gap-4">
@@ -32,4 +33,4 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
       </View>
     </Dialog>
   );
-}
+});

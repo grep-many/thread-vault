@@ -1,62 +1,66 @@
-import { ActivityIndicator, Pressable, View, StyleSheet } from "react-native";
+import { memo, useCallback } from "react";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-export const Button = ({
-  className = "",
+const GRADIENT_PINK = ["#db2777", "#9333ea"] as const;
+const GRADIENT_BLUE = ["#2563eb", "#3b82f6"] as const;
+const GRADIENT_START = { x: 0, y: 0 } as const;
+const GRADIENT_END = { x: 1, y: 0 } as const;
+
+export interface ButtonProps {
+  variant?: "gradient" | "primary" | "secondary";
+  isLoading?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  children?: React.ReactNode;
+  style?: object;
+  className?: string;
+}
+
+export const Button = memo(function Button({
   variant = "primary",
   isLoading,
   children,
   disabled,
-  style,
-  ...props
-}: ButtonProps) => {
-  // 1. Define color constants as Tuples to satisfy LinearGradient's strict types
-  const gradientColors = {
-    gradient: ["#db2777", "#9333ea"] as const, // pink-600 to purple-600
-    primary: ["#2563eb", "#3b82f6"] as const, // blue-600 to blue-500
-  };
+  onPress,
+  className = "",
+}: ButtonProps) {
+  const isDisabled = disabled || isLoading;
 
-  const isGradientVariant = variant === "gradient" || variant === "primary";
+  const handlePress = useCallback(() => {
+    if (!isDisabled) onPress?.();
+  }, [isDisabled, onPress]);
 
-  // 2. Base container styles
-  const containerClasses = `
-    relative flex-row items-center justify-center overflow-hidden rounded-2xl py-4 px-6
-    ${variant === "secondary" ? "bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10" : ""}
-    ${disabled || isLoading ? "opacity-50" : "opacity-100"}
-    ${className}
-  `;
+  const gradientColors =
+    variant === "primary" ? GRADIENT_BLUE : GRADIENT_PINK;
 
   return (
     <Pressable
-      disabled={disabled || isLoading}
-      style={(state) => [
-        {
-          transform: [{ scale: state.pressed && !disabled ? 0.97 : 1 }],
-        },
-        typeof style === "function" ? style(state) : style,
-      ]}
-      {...props}
+      onPress={handlePress}
+      disabled={isDisabled}
+      className={`relative overflow-hidden rounded-2xl py-4 px-6 active:scale-[0.97] ${
+        isDisabled ? "opacity-50" : ""
+      } ${
+        variant === "secondary"
+          ? "bg-black/10 border border-black/10 dark:bg-white/10 dark:border-white/10"
+          : ""
+      } ${className}`}
     >
-      <View className={containerClasses}>
-        {/* Background Gradient */}
-        {isGradientVariant && (
-          <LinearGradient
-            colors={gradientColors[variant as "gradient" | "primary"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
+      {variant !== "secondary" && (
+        <LinearGradient
+          colors={gradientColors}
+          start={GRADIENT_START}
+          end={GRADIENT_END}
+          className="absolute inset-0"
+        />
+      )}
+      <View className="flex-row items-center justify-center gap-2">
+        {isLoading ? (
+          <ActivityIndicator size="small" color="white" />
+        ) : (
+          children
         )}
-
-        {/* Button Content Wrapper */}
-        <View className="flex-row items-center justify-center gap-2">
-          {isLoading ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            children
-          )}
-        </View>
       </View>
     </Pressable>
   );
-};
+});

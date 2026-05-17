@@ -1,71 +1,93 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 
 interface AudioPlayerProps {
   url: string;
-  /** When false the player will pause; when true it resumes if it was playing. */
   isActive?: boolean;
 }
 
-export const AudioPlayer = ({ url, isActive = true }: AudioPlayerProps) => {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [position, setPosition] = useState(0); // ms
-  const [duration, setDuration] = useState(0); // ms
+const AUDIO_MODE = {
+  allowsRecordingIOS: false,
+  playsInSilentModeIOS: true,
+  interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+  shouldDuckAndroid: true,
+  interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+  playThroughEarpieceAndroid: false,
+} as const;
 
-  // Pulse animation for the play button while active
+function formatTime(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+const PULSE_SEQUENCE_DURATION = 600;
+const PLAY_ICON_OFFSET = { marginLeft: 6 } as const;
+const NO_OFFSET = {} as const;
+
+export const AudioPlayer = memo(function AudioPlayer({
+  url,
+  isActive = true,
+}: AudioPlayerProps) {
+
+  const [playing, setPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+
   const pulse = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef<Animated.CompositeAnimation | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
-  // Start / stop the pulse ring when playing state changes
   useEffect(() => {
     if (playing) {
       pulseAnim.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulse, { toValue: 1.15, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-        ])
+          Animated.timing(pulse, {
+            toValue: 1.15,
+            duration: PULSE_SEQUENCE_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulse, {
+            toValue: 1,
+            duration: PULSE_SEQUENCE_DURATION,
+            useNativeDriver: true,
+          }),
+        ]),
       );
       pulseAnim.current.start();
     } else {
       pulseAnim.current?.stop();
       pulse.setValue(1);
     }
-  }, [playing]);
+  }, [playing, pulse]);
 
-  // Pause when the slide is scrolled off-screen
+  // Pause when scrolled off-screen — use ref to avoid stale closure
   useEffect(() => {
-    if (!isActive && playing && sound) {
-      sound.pauseAsync().catch(() => {});
+    if (!isActive && soundRef.current) {
+      soundRef.current.pauseAsync().catch(() => {});
       setPlaying(false);
     }
   }, [isActive]);
 
-  // Unload sound when component is actually unmounted
+  // Unload on unmount
   useEffect(() => {
     return () => {
-      sound?.unloadAsync().catch(() => {});
+      soundRef.current?.unloadAsync().catch(() => {});
     };
-  }, [sound]);
+  }, []);
 
-  const togglePlayback = async () => {
-    if (!sound) {
-      // First play — create the sound object
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-        shouldDuckAndroid: true,
-        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-        playThroughEarpieceAndroid: false,
-      });
+  const togglePlayback = useCallback(async () => {
+    if (!soundRef.current) {
+      await Audio.setAudioModeAsync(AUDIO_MODE);
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: url },
-        { shouldPlay: true }
+        { shouldPlay: true },
       );
-      setSound(newSound);
+      soundRef.current = newSound;
+
       setPlaying(true);
 
       newSound.setOnPlaybackStatusUpdate((status) => {
@@ -80,58 +102,44 @@ export const AudioPlayer = ({ url, isActive = true }: AudioPlayerProps) => {
       });
     } else {
       if (playing) {
-        await sound.pauseAsync();
+        await soundRef.current.pauseAsync();
         setPlaying(false);
       } else {
-        await sound.playAsync();
+        await soundRef.current.playAsync();
         setPlaying(true);
       }
     }
-  };
-
-  const formatTime = (ms: number) => {
-    const totalSec = Math.floor(ms / 1000);
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+  }, [playing, url]);
 
   const progress = duration > 0 ? position / duration : 0;
+  const progressWidth = `${progress * 100}%` as const;
+  const iconOffset = playing ? NO_OFFSET : PLAY_ICON_OFFSET;
 
   return (
-    <View className="h-full w-full flex-1 items-center justify-center bg-zinc-900">
-      {/* Pulsing ring + play button */}
+    <View className="flex-1 items-center justify-center bg-zinc-900 dark:bg-zinc-950">
       <Pressable onPress={togglePlayback} className="items-center justify-center">
         <Animated.View
+          className="h-32 w-32 items-center justify-center rounded-full border border-pink-500/30 bg-zinc-800 shadow-lg shadow-black/40"
           style={{ transform: [{ scale: pulse }] }}
-          className="size-32 items-center justify-center rounded-full border border-pink-500/30 bg-zinc-800 shadow-2xl"
         >
-          {/* Inner glow ring while playing */}
-          {playing && (
-            <View className="absolute size-32 rounded-full border-2 border-pink-500/20" />
-          )}
+          {playing && <View className="absolute h-32 w-32 rounded-full border-2 border-pink-500/20" />}
           <FontAwesome6
             name={playing ? "pause" : "play"}
             size={44}
             color="#ec4899"
-            style={{ marginLeft: playing ? 0 : 6 }}
+            style={iconOffset}
           />
         </Animated.View>
       </Pressable>
 
-      {/* Progress bar */}
       <View className="mt-8 w-64 items-center gap-2">
         <View className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-700">
-          <View
-            className="h-full rounded-full bg-pink-500"
-            style={{ width: `${progress * 100}%` }}
-          />
+          <View className="h-full rounded-full bg-pink-500" style={{ width: progressWidth }} />
         </View>
 
-        {/* Time labels */}
         <View className="w-full flex-row justify-between">
-          <Text className="text-xs text-zinc-500">{formatTime(position)}</Text>
-          <Text className="text-xs text-zinc-500">{formatTime(duration)}</Text>
+          <Text className="text-xs text-zinc-400">{formatTime(position)}</Text>
+          <Text className="text-xs text-zinc-400">{formatTime(duration)}</Text>
         </View>
       </View>
 
@@ -140,4 +148,4 @@ export const AudioPlayer = ({ url, isActive = true }: AudioPlayerProps) => {
       </Text>
     </View>
   );
-};
+});

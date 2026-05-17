@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { View, Modal, ActivityIndicator, Platform, StyleSheet } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Modal, View, ActivityIndicator, Platform } from "react-native";
 import { WebView, WebViewNavigation } from "react-native-webview";
 import CookieManager from "@react-native-cookies/cookies";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,26 +10,47 @@ interface Props {
   onSessionExtracted: (sessionId: string, csrfToken?: string, appId?: string) => void;
 }
 
+const IG_LOGIN_URL = "https://www.instagram.com/accounts/login/";
+const IG_COOKIE_URL = "https://www.instagram.com";
+const IG_HOST = "instagram.com";
+
+const USER_AGENT =
+  Platform.OS === "android"
+    ? "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+    : "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
+
+const ANDROID_LAYER_TYPE = Platform.OS === "android" ? "software" : "none";
+
+const INJECTED_JAVASCRIPT = `
+  (function() {
+    try {
+      var appId = "936619743392459";
+      var match = document.documentElement.innerHTML.match(/(?:"appId"|app_id)["\\s:=]+(\\d{15,})/);
+      if (match && match[1]) appId = match[1];
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'IG_APP_ID', appId: appId }));
+    } catch (e) {}
+  })();
+  true;
+`;
+
+const WV_SOURCE = { uri: IG_LOGIN_URL } as const;
+
 export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) {
   const [loading, setLoading] = useState(true);
   const appIdRef = useRef<string | undefined>(undefined);
 
-  const checkNativeCookies = async () => {
+  const checkNativeCookies = useCallback(async () => {
     try {
-      // Flush cookies from RAM to disk on Android before reading
       if (Platform.OS === "android") {
         await CookieManager.flush();
       }
-
-      const cookies = await CookieManager.get("https://www.instagram.com", true);
-      console.log("[IG-AUTH] Current Cookies:", Object.keys(cookies));
-
-      if (cookies && cookies.sessionid) {
-        const sid = cookies.sessionid.value;
-        const csrf = cookies.csrftoken?.value;
-        console.log("[IG-AUTH] Session ID Found!", sid, csrf, appIdRef.current);
-
-        onSessionExtracted(sid, csrf, appIdRef.current);
+      const cookies = await CookieManager.get(IG_COOKIE_URL, true);
+      if (cookies?.sessionid) {
+        onSessionExtracted(
+          cookies.sessionid.value,
+          cookies.csrftoken?.value,
+          appIdRef.current,
+        );
         onClose();
       }
     } catch (error: unknown) {
@@ -37,29 +58,34 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
         `[IG-AUTH] Cookie Error: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
-  };
+  }, [onClose, onSessionExtracted]);
 
-  const handleNavigationStateChange = (navState: WebViewNavigation) => {
-    const { url, loading: isNavLoading } = navState;
-    if (!isNavLoading && url.includes("instagram.com")) {
-      setTimeout(checkNativeCookies, 1000);
+  const handleNavigationStateChange = useCallback(
+    (navState: WebViewNavigation) => {
+      if (!navState.loading && navState.url.includes(IG_HOST)) {
+        setTimeout(checkNativeCookies, 1000);
+      }
+    },
+    [checkNativeCookies],
+  );
+
+  const handleLoadStart = useCallback(() => setLoading(true), []);
+
+  const handleLoadEnd = useCallback(() => {
+    setLoading(false);
+    checkNativeCookies();
+  }, [checkNativeCookies]);
+
+  const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "IG_APP_ID" && data.appId) {
+        appIdRef.current = data.appId;
+      }
+    } catch {
+      console.error("[IG-AUTH] Message parse error");
     }
-  };
-
-  const INJECTED_JAVASCRIPT = `
-    (function() {
-      try {
-        var appId = "936619743392459"; // Fallback default
-        var str = document.documentElement.innerHTML;
-        var match = str.match(/(?:"appId"|app_id)["\\s:=]+(\\d{15,})/);
-        if (match && match[1]) {
-          appId = match[1];
-        }
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'IG_APP_ID', appId: appId }));
-      } catch (e) {}
-    })();
-    true;
-  `;
+  }, []);
 
   return (
     <Modal
@@ -68,46 +94,26 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-white dark:bg-[#1c2a33]">
-        <SafeAreaView style={{ flex: 1 }}>
+      <View className="flex-1 bg-background">
+        <SafeAreaView className="flex-1">
           <WebView
-            source={{ uri: "https://www.instagram.com/accounts/login/" }}
+            source={WV_SOURCE}
             onNavigationStateChange={handleNavigationStateChange}
-            onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => {
-              setLoading(false);
-              checkNativeCookies();
-            }}
+            onLoadStart={handleLoadStart}
+            onLoadEnd={handleLoadEnd}
             injectedJavaScript={INJECTED_JAVASCRIPT}
-            onMessage={(event) => {
-              try {
-                const data = JSON.parse(event.nativeEvent.data);
-                if (data.type === "IG_APP_ID" && data.appId) {
-                  appIdRef.current = data.appId;
-                }
-              } catch {
-                console.error("Something went wrong while signing up!");
-              }
-            }}
-            sharedCookiesEnabled={true}
-            thirdPartyCookiesEnabled={true}
-            domStorageEnabled={true}
-            javaScriptEnabled={true}
-            style={{ flex: 1 }}
-            androidLayerType={Platform.OS === "android" ? "software" : "none"}
-            userAgent={
-              Platform.OS === "android"
-                ? "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-                : "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
-            }
+            onMessage={handleMessage}
+            sharedCookiesEnabled
+            thirdPartyCookiesEnabled
+            domStorageEnabled
+            javaScriptEnabled
+            className="flex-1"
+            androidLayerType={ANDROID_LAYER_TYPE}
+            userAgent={USER_AGENT}
           />
-
           {loading && (
-            <View
-              style={StyleSheet.absoluteFill}
-              className="z-50 items-center justify-center bg-white dark:bg-[#1c2a33]"
-            >
-              <ActivityIndicator size="large" color="#3897f0" />
+            <View className="absolute inset-0 z-50 flex items-center justify-center bg-background/80">
+              <ActivityIndicator size="large" className="text-primary" />
             </View>
           )}
         </SafeAreaView>

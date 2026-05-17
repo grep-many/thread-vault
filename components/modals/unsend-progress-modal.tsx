@@ -1,35 +1,103 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, memo } from "react";
 import {
   Modal,
   View,
   Text,
   Pressable,
   Animated,
-  StyleSheet,
   ScrollView,
 } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { useUnsendQueue } from "@/hooks/unsend/use-unsend-queue";
+import { UnsendJob } from "@/lib/instagram/ig-unsend"; // Adjust import as necessary, or skip if UnsendJob is globally typed. Assuming UnsendJob is defined.
 
 interface UnsendProgressModalProps {
-  /** Controls modal visibility. Caller opens it; modal auto-closes on completion. */
   isVisible: boolean;
-  /** Called when the modal should be dismissed (auto-close or user cancel). */
   onDismiss: () => void;
-  /** Summary toast callback: fired after close with final counts. */
   onComplete?: (successCount: number, failureCount: number) => void;
 }
 
-/** Delay before auto-closing after all jobs finish (ms) */
 const AUTO_CLOSE_DELAY_MS = 1800;
 
-export function UnsendProgressModal({
+// ─── Atomic selectors ─────────────────────────────────────────────────────────
+
+const selectIsRunning = (s: ReturnType<typeof useUnsendQueue.getState>) => s.isRunning;
+const selectIsDone = (s: ReturnType<typeof useUnsendQueue.getState>) => s.isDone;
+const selectJobs = (s: ReturnType<typeof useUnsendQueue.getState>) => s.jobs;
+const selectCurrentItemId = (s: ReturnType<typeof useUnsendQueue.getState>) => s.currentItemId;
+const selectSuccessCount = (s: ReturnType<typeof useUnsendQueue.getState>) => s.successCount;
+const selectFailureCount = (s: ReturnType<typeof useUnsendQueue.getState>) => s.failureCount;
+const selectIsCancelled = (s: ReturnType<typeof useUnsendQueue.getState>) => s.isCancelled;
+const selectIsCoolingDown = (s: ReturnType<typeof useUnsendQueue.getState>) => s.isCoolingDown;
+const selectCooldownTimeLeft = (s: ReturnType<typeof useUnsendQueue.getState>) => s.cooldownTimeLeft;
+const selectCancel = (s: ReturnType<typeof useUnsendQueue.getState>) => s.cancel;
+const selectReset = (s: ReturnType<typeof useUnsendQueue.getState>) => s.reset;
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+interface JobRowProps {
+  job: any; // Using any or UnsendJob
+  currentItemId: string | null;
+  isCoolingDown: boolean;
+}
+
+const JobRow = memo(function JobRow({ job, currentItemId, isCoolingDown }: JobRowProps) {
+  const isProcessing = job.status === "processing";
+  const isCurrent = job.itemId === currentItemId && isProcessing;
+
+  return (
+    <View className="flex-row items-center border-b border-zinc-800 py-1.5">
+      <View className="w-6 items-center">
+        {job.status === "success" ? (
+          <FontAwesome6 name="circle-check" size={14} color="#22c55e" />
+        ) : job.status === "failed" ? (
+          <FontAwesome6 name="circle-xmark" size={14} color="#ef4444" />
+        ) : isProcessing ? (
+          <FontAwesome6
+            name="rotate"
+            size={14}
+            color={isCoolingDown ? "#f59e0b" : "#ec4899"}
+          />
+        ) : (
+          <View className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+        )}
+      </View>
+      <Text className="ml-2 flex-1 font-mono text-[11px] text-zinc-500" numberOfLines={1}>
+        {job.itemId}
+      </Text>
+      {isCurrent && (
+        <View
+          className={`rounded px-1.5 py-0.5 ${
+            isCoolingDown ? "bg-amber-500" : "bg-pink-500"
+          }`}
+        >
+          <Text className="text-[9px] font-bold text-white">
+            {isCoolingDown ? "Waiting" : "Now"}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+});
+
+// ─── Main modal ───────────────────────────────────────────────────────────────
+
+export const UnsendProgressModal = memo(function UnsendProgressModal({
   isVisible,
   onDismiss,
   onComplete,
 }: UnsendProgressModalProps) {
-  const { isRunning, isDone, jobs, currentItemId, successCount, failureCount, isCancelled, isCoolingDown, cooldownTimeLeft, cancel, reset } =
-    useUnsendQueue();
+  const isRunning = useUnsendQueue(selectIsRunning);
+  const isDone = useUnsendQueue(selectIsDone);
+  const jobs = useUnsendQueue(selectJobs);
+  const currentItemId = useUnsendQueue(selectCurrentItemId);
+  const successCount = useUnsendQueue(selectSuccessCount);
+  const failureCount = useUnsendQueue(selectFailureCount);
+  const isCancelled = useUnsendQueue(selectIsCancelled);
+  const isCoolingDown = useUnsendQueue(selectIsCoolingDown);
+  const cooldownTimeLeft = useUnsendQueue(selectCooldownTimeLeft);
+  const cancel = useUnsendQueue(selectCancel);
+  const reset = useUnsendQueue(selectReset);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -39,7 +107,6 @@ export function UnsendProgressModal({
   const completed = successCount + failureCount;
   const progressRatio = total > 0 ? completed / total : 0;
 
-  // Animate progress bar
   useEffect(() => {
     Animated.spring(progressAnim, {
       toValue: progressRatio,
@@ -49,7 +116,6 @@ export function UnsendProgressModal({
     }).start();
   }, [progressRatio, progressAnim]);
 
-  // Slide-up animation when modal opens
   useEffect(() => {
     if (isVisible) {
       Animated.spring(slideAnim, {
@@ -63,13 +129,11 @@ export function UnsendProgressModal({
     }
   }, [isVisible, slideAnim]);
 
-  // Auto-close after completion
   useEffect(() => {
     if (isDone && isVisible) {
       autoCloseTimer.current = setTimeout(() => {
         onComplete?.(successCount, failureCount);
         onDismiss();
-        // Defer reset to avoid resetting while modal is closing
         setTimeout(() => reset(), 400);
       }, AUTO_CLOSE_DELAY_MS);
     }
@@ -93,6 +157,12 @@ export function UnsendProgressModal({
     outputRange: ["0%", "100%"],
   });
 
+  const progressFillColor =
+    isDone && !isCancelled ? "#22c55e" : isCoolingDown ? "#f59e0b" : "#ec4899";
+
+  const headerIcon =
+    isDone && !isCancelled ? "circle-check" : isCoolingDown ? "hourglass-half" : "trash-can";
+
   const statusLabel = isDone
     ? isCancelled
       ? "Cancelled"
@@ -111,264 +181,91 @@ export function UnsendProgressModal({
       statusBarTranslucent
       onRequestClose={handleCancel}
     >
-      {/* Backdrop */}
       <Pressable
-        style={styles.backdrop}
+        className="absolute inset-0 bg-black/50"
         onPress={isDone || isCancelled ? handleCancel : undefined}
       />
 
-      {/* Bottom Sheet */}
       <Animated.View
-        style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
+        className="absolute bottom-0 left-0 right-0 min-h-[320px] rounded-t-3xl bg-zinc-900 px-6 pb-9 pt-3"
+        style={{ transform: [{ translateY: slideAnim }], maxHeight: "75%" }}
       >
-        {/* Handle bar */}
-        <View style={styles.handleBar} />
+        <View className="mb-5 h-1 w-10 self-center rounded-full bg-zinc-700" />
 
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <View style={styles.iconWrapper}>
+        <View className="mb-5 flex-row items-center">
+          <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-zinc-800">
             <FontAwesome6
-              name={isDone && !isCancelled ? "circle-check" : isCoolingDown ? "hourglass-half" : "trash-can"}
+              name={headerIcon}
               size={20}
-              color={isDone && !isCancelled ? "#22c55e" : isCoolingDown ? "#f59e0b" : "#ec4899"}
+              color={progressFillColor}
             />
           </View>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>
+          <View className="flex-1">
+            <Text className="text-[17px] font-bold tracking-[-0.3px] text-zinc-50">
               {isDone && !isCancelled ? "Unsend Complete" : "Unsending Messages"}
             </Text>
-            <Text style={styles.subtitle}>{statusLabel}</Text>
+            <Text className="mt-0.5 text-[13px] text-zinc-400">{statusLabel}</Text>
           </View>
         </View>
 
-        {/* Progress Bar */}
-        <View style={styles.progressTrack}>
+        <View className="mb-3 h-2 overflow-hidden rounded-full bg-zinc-800">
           <Animated.View
-            style={[
-              styles.progressFill,
-              {
-                width: progressBarWidth,
-                backgroundColor: isDone && !isCancelled ? "#22c55e" : isCoolingDown ? "#f59e0b" : "#ec4899",
-              },
-            ]}
+            className="h-full rounded-full"
+            style={{ width: progressBarWidth, backgroundColor: progressFillColor }}
           />
         </View>
 
-        {/* Count Row */}
-        <View style={styles.countRow}>
-          <Text style={styles.countTotal}>{completed} / {total}</Text>
-          <View style={styles.countBadges}>
-            <View style={[styles.badge, styles.badgeSuccess]}>
+        <View className="mb-4 flex-row items-center justify-between">
+          <Text className="text-[13px] font-semibold text-zinc-500">
+            {completed} / {total}
+          </Text>
+          <View className="flex-row gap-2">
+            <View className="flex-row items-center gap-1 rounded-full bg-green-100/10 px-2 py-0.5">
               <FontAwesome6 name="check" size={9} color="#16a34a" />
-              <Text style={styles.badgeSuccessText}>{successCount}</Text>
+              <Text className="text-[11px] font-bold text-green-600">{successCount}</Text>
             </View>
             {failureCount > 0 && (
-              <View style={[styles.badge, styles.badgeFail]}>
+              <View className="flex-row items-center gap-1 rounded-full bg-red-100/10 px-2 py-0.5">
                 <FontAwesome6 name="xmark" size={9} color="#dc2626" />
-                <Text style={styles.badgeFailText}>{failureCount}</Text>
+                <Text className="text-[11px] font-bold text-red-600">{failureCount}</Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* Job List (scrollable for large batches) */}
         <ScrollView
-          style={styles.jobList}
-          contentContainerStyle={styles.jobListContent}
+          className="mb-5 max-h-40"
+          contentContainerStyle={{ paddingBottom: 4 }}
           showsVerticalScrollIndicator={false}
         >
           {jobs.map((job) => (
-            <View key={job.itemId} style={styles.jobRow}>
-              <View style={styles.jobStatus}>
-                {job.status === "success" ? (
-                  <FontAwesome6 name="circle-check" size={14} color="#22c55e" />
-                ) : job.status === "failed" ? (
-                  <FontAwesome6 name="circle-xmark" size={14} color="#ef4444" />
-                ) : job.status === "processing" ? (
-                  <FontAwesome6 name="rotate" size={14} color={isCoolingDown ? "#f59e0b" : "#ec4899"} />
-                ) : (
-                  <View style={styles.jobPending} />
-                )}
-              </View>
-              <Text style={styles.jobId} numberOfLines={1}>
-                {job.itemId}
-              </Text>
-              {job.itemId === currentItemId && job.status === "processing" && (
-                <View style={[styles.processingBadge, isCoolingDown && { backgroundColor: "#f59e0b" }]}>
-                  <Text style={styles.processingText}>{isCoolingDown ? "Waiting" : "Now"}</Text>
-                </View>
-              )}
-            </View>
+            <JobRow
+              key={job.itemId}
+              job={job}
+              currentItemId={currentItemId}
+              isCoolingDown={isCoolingDown}
+            />
           ))}
         </ScrollView>
 
-        {/* Action Button */}
         {!isDone && (
           <Pressable
             onPress={handleCancel}
-            style={({ pressed }) => [styles.cancelBtn, pressed && styles.cancelBtnPressed]}
+            className="items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 py-3.5 active:opacity-70"
           >
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text className="text-[15px] font-semibold text-zinc-400">Cancel</Text>
           </Pressable>
         )}
 
         {isDone && (
           <Pressable
             onPress={handleCancel}
-            style={({ pressed }) => [styles.doneBtn, pressed && styles.doneBtnPressed]}
+            className="items-center justify-center rounded-2xl bg-green-500 py-3.5 active:opacity-80"
           >
-            <Text style={styles.doneText}>Dismiss</Text>
+            <Text className="text-[15px] font-bold text-white">Dismiss</Text>
           </Pressable>
         )}
       </Animated.View>
     </Modal>
   );
-}
-
-const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  sheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#18181b", // zinc-900
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 36,
-    minHeight: 320,
-    maxHeight: "75%",
-  },
-  handleBar: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#3f3f46", // zinc-700
-    marginBottom: 20,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  iconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#27272a", // zinc-800
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  headerText: { flex: 1 },
-  title: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#fafafa", // zinc-50
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: "#a1a1aa", // zinc-400
-    marginTop: 2,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: "#27272a",
-    borderRadius: 4,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 4,
-  },
-  countRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  countTotal: {
-    fontSize: 13,
-    color: "#71717a", // zinc-500
-    fontWeight: "600",
-  },
-  countBadges: { flexDirection: "row", gap: 8 },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  badgeSuccess: { backgroundColor: "#dcfce7" }, // green-100
-  badgeSuccessText: { fontSize: 11, fontWeight: "700", color: "#16a34a" },
-  badgeFail: { backgroundColor: "#fee2e2" }, // red-100
-  badgeFailText: { fontSize: 11, fontWeight: "700", color: "#dc2626" },
-  jobList: { maxHeight: 160, marginBottom: 20 },
-  jobListContent: { paddingBottom: 4 },
-  jobRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 5,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#27272a",
-  },
-  jobStatus: { width: 22, alignItems: "center" },
-  jobPending: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#3f3f46",
-  },
-  jobId: {
-    flex: 1,
-    fontSize: 11,
-    color: "#71717a",
-    marginLeft: 8,
-    fontFamily: "monospace",
-  },
-  processingBadge: {
-    backgroundColor: "#ec4899",
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  processingText: { fontSize: 9, fontWeight: "700", color: "white" },
-  cancelBtn: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#3f3f46",
-    backgroundColor: "#27272a",
-  },
-  cancelBtnPressed: { opacity: 0.7 },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#a1a1aa",
-  },
-  doneBtn: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: "#22c55e",
-  },
-  doneBtnPressed: { opacity: 0.8 },
-  doneText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "white",
-  },
 });
