@@ -5,11 +5,16 @@ import { database } from "@/model";
 import Media from "@/model/media";
 import { Q } from "@nozbe/watermelondb";
 
-/** 300 ms gap between API calls to avoid rate limiting */
-const UNSEND_BATCH_DELAY_MS = 300;
-const COOLDOWNS = [60000, 180000, 300000, 600000];
+const UNSEND_BATCH_DELAY_MS = { min: 600, max: 1200 } as const;
+const COOLDOWNS = [60_000, 180_000, 300_000, 600_000] as const;
+const MAX_COOLDOWN = 600_000;
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const randomDelay = () =>
+  delay(
+    Math.random() * (UNSEND_BATCH_DELAY_MS.max - UNSEND_BATCH_DELAY_MS.min) +
+      UNSEND_BATCH_DELAY_MS.min,
+  );
 
 interface UnsendQueueState {
   isRunning: boolean;
@@ -21,13 +26,12 @@ interface UnsendQueueState {
   isCancelled: boolean;
   isCoolingDown: boolean;
   cooldownTimeLeft: number;
-  // Actions
   startUnsend: (inputs: UnsendJobInput[]) => void;
   cancel: () => void;
   reset: () => void;
 }
 
-export const useUnsendQueue = create<UnsendQueueState>((set, get) => ({
+const RESET_STATE: Omit<UnsendQueueState, "startUnsend" | "cancel" | "reset"> = {
   isRunning: false,
   isDone: false,
   jobs: [],
@@ -37,54 +41,35 @@ export const useUnsendQueue = create<UnsendQueueState>((set, get) => ({
   isCancelled: false,
   isCoolingDown: false,
   cooldownTimeLeft: 0,
+};
 
-  reset: () =>
-    set({
-      isRunning: false,
-      isDone: false,
-      jobs: [],
-      currentItemId: null,
-      successCount: 0,
-      failureCount: 0,
-      isCancelled: false,
-      isCoolingDown: false,
-      cooldownTimeLeft: 0,
-    }),
+export const useUnsendQueue = create<UnsendQueueState>((set, get) => ({
+  ...RESET_STATE,
 
-  cancel: () => {
-    set({ isCancelled: true });
-  },
+  reset: () => set(RESET_STATE),
 
-  startUnsend: (inputs: UnsendJobInput[]) => {
+  cancel: () => set({ isCancelled: true }),
+
+  startUnsend: (inputs) => {
     if (get().isRunning) return;
 
-    // Initialize job list
-    const jobs: UnsendJob[] = inputs.map((input) => ({
-      ...input,
-      status: "pending",
-    }));
+    const jobs: UnsendJob[] = inputs.map((input) => ({ ...input, status: "pending" }));
 
     set({
+      ...RESET_STATE,
       isRunning: true,
-      isDone: false,
       jobs,
-      currentItemId: null,
-      successCount: 0,
-      failureCount: 0,
-      isCancelled: false,
-      isCoolingDown: false,
-      cooldownTimeLeft: 0,
     });
 
-    // Run the queue asynchronously — non-blocking
     processQueue(get, set);
   },
 }));
 
-async function processQueue(
-  get: () => UnsendQueueState,
-  set: (partial: Partial<UnsendQueueState> | ((s: UnsendQueueState) => Partial<UnsendQueueState>)) => void,
-) {
+type SetFn = (
+  partial: Partial<UnsendQueueState> | ((s: UnsendQueueState) => Partial<UnsendQueueState>),
+) => void;
+
+async function processQueue(get: () => UnsendQueueState, set: SetFn) {
   const { sessionId, csrfToken, appId } = useSession.getState();
 
   if (!sessionId) {
@@ -92,18 +77,19 @@ async function processQueue(
     return;
   }
 
+  const csrfResolved = csrfToken ?? undefined;
+  const appIdResolved = appId ?? undefined;
+
   const jobs = get().jobs;
   let cooldownIdx = 0;
 
   for (let i = 0; i < jobs.length; i++) {
-    // Check for user-initiated cancellation
     if (get().isCancelled) break;
 
     const job = jobs[i];
     let success = false;
 
     while (!success && !get().isCancelled) {
-      // Mark current item as processing
       set((state) => ({
         currentItemId: job.itemId,
         jobs: state.jobs.map((j) =>
@@ -113,14 +99,13 @@ async function processQueue(
 
       const result = await IGUnsendItem({
         sessionId,
-        csrfToken: csrfToken || undefined,
-        appId: appId || undefined,
+        csrfToken: csrfResolved,
+        appId: appIdResolved,
         threadId: job.threadId,
         itemId: job.itemId,
       });
 
       if (result.success) {
-        // Remove the item from the local database on success
         try {
           await database.write(async () => {
             const items = await database
@@ -146,17 +131,16 @@ async function processQueue(
         success = true;
 
         if (i < jobs.length - 1 && !get().isCancelled) {
-          await delay(Math.random() * (1200 - 600) + 600);
+          await randomDelay();
         }
       } else {
-        const waitMs = COOLDOWNS[cooldownIdx] || 600000;
+        const waitMs = COOLDOWNS[cooldownIdx] ?? MAX_COOLDOWN;
         let timeLeft = Math.floor(waitMs / 1000);
 
         set({ isCoolingDown: true, cooldownTimeLeft: timeLeft });
 
-        // Wait in 1-second increments to update UI
         while (timeLeft > 0 && !get().isCancelled) {
-          await delay(1000);
+          await delay(1_000);
           timeLeft -= 1;
           set({ cooldownTimeLeft: timeLeft });
         }

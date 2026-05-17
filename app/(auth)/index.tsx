@@ -8,10 +8,54 @@ import { validateSession } from "@/hooks/auth/use-validate-session";
 import { useSync } from "@/hooks/sync/use-sync";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View, Image } from "react-native";
 import { router } from "expo-router";
 import { ICONPNG } from "@/constants";
+
+// ─── Atomic selectors ─────────────────────────────────────────────────────────
+
+const selectSessionId = (s: ReturnType<typeof useSession.getState>) => s.sessionId;
+const selectSetSession = (s: ReturnType<typeof useSession.getState>) => s.setSession;
+
+// ─── Static constants ─────────────────────────────────────────────────────────
+
+const GRADIENT_COLORS = ["#facc15", "#ec4899", "#9333ea"] as const;
+const SCROLL_CONTENT_STYLE = { flexGrow: 1 } as const;
+const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
+
+// ─── Stable class strings ─────────────────────────────────────────────────────
+
+const CLS_SCROLL = "bg-background dark:bg-dark-background";
+const CLS_OUTER = "flex-1 items-center justify-center p-6";
+const CLS_INNER = "w-full max-w-md";
+const CLS_HERO = "mb-8 items-center";
+const CLS_ICON_WRAP = "mb-6 overflow-hidden rounded-3xl shadow-lg shadow-primary/50";
+const CLS_GRADIENT = "h-16 w-16 items-center justify-center";
+const CLS_ICON_IMG = "h-16 w-16";
+const CLS_APP_TITLE =
+  "mb-2 text-4xl font-bold tracking-tight text-foreground dark:text-dark-foreground";
+const CLS_APP_SUBTITLE =
+  "text-muted-foreground dark:text-dark-muted-foreground";
+const CLS_TABS_WRAP =
+  "mb-8 flex-row rounded-2xl bg-muted/50 p-1.5 dark:bg-[#1c2a33]";
+const CLS_CARD =
+  "overflow-hidden rounded-4xl border border-border bg-card p-8 shadow-xl dark:border-dark-border dark:bg-dark-card";
+const CLS_INSTA_TAB = "gap-6";
+const CLS_INSTA_ICON_SECTION = "items-center py-4";
+const CLS_INSTA_ICON_CIRCLE = "mb-4 rounded-full bg-primary/10 p-4";
+const CLS_INSTA_DESC =
+  "text-center leading-6 text-muted-foreground dark:text-dark-muted-foreground";
+const CLS_MANUAL_TAB = "gap-6";
+const CLS_MANUAL_LABEL_ROW =
+  "mb-3 flex-row items-center justify-between px-1";
+const CLS_MANUAL_LABEL =
+  "text-[10px] font-bold tracking-widest text-muted-foreground uppercase dark:text-dark-muted-foreground";
+const CLS_GUIDE_ROW = "flex-row items-center gap-1";
+const CLS_GUIDE_TEXT = "text-xs font-semibold text-primary";
+const CLS_VALIDATE_TEXT = "font-bold text-white";
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function LoginScreen() {
   const [activeTab, setActiveTab] = useState<"insta" | "manual">("insta");
@@ -19,91 +63,83 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInstaModalOpen, setIsInstaModalOpen] = useState(false);
 
-  const sessionId = useSession((state) => state.sessionId);
-  const setSession = useSession((state) => state.setSession);
+  const sessionId = useSession(selectSessionId);
+  const setSession = useSession(selectSetSession);
 
-  async function onSessionReceived(id: string, csrf?: string, appId?: string) {
-    setIsLoading(true);
-    console.log("[LoginScreen] Session extracted:", id);
-
-    try {
-      // Persist credentials before validation so validateSession can read them
-      setSession(id, csrf, appId);
-
-      const { isValid, hasExistingData } = await validateSession(id, csrf, appId);
-
-      if (isValid) {
-        if (!hasExistingData) {
-          useSync.getState().syncInbox();
+  const onSessionReceived = useCallback(
+    async (id: string, csrf?: string, appId?: string) => {
+      setIsLoading(true);
+      try {
+        setSession(id, csrf, appId);
+        const { isValid, hasExistingData } = await validateSession(id, csrf, appId);
+        if (isValid) {
+          if (!hasExistingData) {
+            useSync.getState().syncInbox();
+          }
+          router.replace("/inbox");
         }
-        router.replace("/inbox");
-      } else {
-        console.log("[LoginScreen] Session invalid — credentials and DB cleared.");
+      } catch (e) {
+        console.error("[LoginScreen] Session validation error:", e);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error("[LoginScreen] Session validation error:", e);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    },
+    [setSession],
+  );
 
-  async function handleConnect() {
+  const handleConnect = useCallback(async () => {
     if (activeTab === "insta") {
       setIsInstaModalOpen(true);
-    } else {
-      if (sessionId) {
-        await onSessionReceived(sessionId);
-      }
+    } else if (sessionId) {
+      await onSessionReceived(sessionId);
     }
-  }
+  }, [activeTab, sessionId, onSessionReceived]);
+
+  const handleSetActiveInsta = useCallback(() => setActiveTab("insta"), []);
+  const handleSetActiveManual = useCallback(() => setActiveTab("manual"), []);
+  const handleOpenHelp = useCallback(() => setIsHelpOpen(true), []);
+  const handleCloseHelp = useCallback(() => setIsHelpOpen(false), []);
+  const handleCloseInstaModal = useCallback(() => setIsInstaModalOpen(false), []);
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="bg-zinc-50 dark:bg-zinc-950">
-      <View className="flex-1 items-center justify-center p-6">
-        <View className="w-full max-w-md">
-          {/* Header */}
-          <View className="mb-8 items-center">
-            <View className="mb-6 overflow-hidden rounded-3xl shadow-lg shadow-pink-500/50">
-              <LinearGradient
-                colors={["#facc15", "#ec4899", "#9333ea"]}
-                className="h-16 w-16 items-center justify-center"
-              >
-                <Image source={ICONPNG} className="h-16 w-16" />
+    <ScrollView contentContainerStyle={SCROLL_CONTENT_STYLE} className={CLS_SCROLL}>
+      <View className={CLS_OUTER}>
+        <View className={CLS_INNER}>
+          <View className={CLS_HERO}>
+            <View className={CLS_ICON_WRAP}>
+              <LinearGradient colors={GRADIENT_COLORS} className={CLS_GRADIENT}>
+                <Image source={ICONPNG} className={CLS_ICON_IMG} />
               </LinearGradient>
             </View>
-            <Text className="mb-2 text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              ThreadsVault
-            </Text>
-            <Text className="text-zinc-600 dark:text-zinc-400">
+            <Text className={CLS_APP_TITLE}>ThreadsVault</Text>
+            <Text className={CLS_APP_SUBTITLE}>
               Choose your preferred connection method
             </Text>
           </View>
 
-          {/* Tab Slider */}
-          <View className="mb-8 flex-row rounded-2xl bg-zinc-200/50 p-1 dark:bg-white/5">
+          <View className={CLS_TABS_WRAP}>
             <TabButton
               active={activeTab === "insta"}
               label="Login"
               icon="instagram"
-              onPress={() => setActiveTab("insta")}
+              onPress={handleSetActiveInsta}
             />
             <TabButton
               active={activeTab === "manual"}
               label="Manual"
               icon="key"
-              onPress={() => setActiveTab("manual")}
+              onPress={handleSetActiveManual}
             />
           </View>
 
-          {/* Main Content Card */}
-          <View className="overflow-hidden rounded-4xl border bg-white p-8 shadow-xl dark:border-white/10 dark:bg-white/5">
+          <View className={CLS_CARD}>
             {activeTab === "insta" ? (
-              <View className="gap-6">
-                <View className="items-center py-4">
-                  <View className="mb-4 rounded-full bg-pink-500/10 p-4">
+              <View className={CLS_INSTA_TAB}>
+                <View className={CLS_INSTA_ICON_SECTION}>
+                  <View className={CLS_INSTA_ICON_CIRCLE}>
                     <FontAwesome6 name="instagram" size={32} color="#ec4899" />
                   </View>
-                  <Text className="text-center leading-6 text-zinc-600 dark:text-zinc-400">
+                  <Text className={CLS_INSTA_DESC}>
                     Connect securely using the official Instagram login flow. No cookies required.
                   </Text>
                 </View>
@@ -115,23 +151,22 @@ export default function LoginScreen() {
 
                 <InstaLoginModal
                   isOpen={isInstaModalOpen}
-                  onClose={() => setIsInstaModalOpen(false)}
+                  onClose={handleCloseInstaModal}
                   onSessionExtracted={onSessionReceived}
                 />
               </View>
             ) : (
-              <View className="gap-6">
+              <View className={CLS_MANUAL_TAB}>
                 <View>
-                  <View className="mb-3 flex-row items-center justify-between px-1">
-                    <Text className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-                      Session ID Cookie
-                    </Text>
+                  <View className={CLS_MANUAL_LABEL_ROW}>
+                    <Text className={CLS_MANUAL_LABEL}>Session ID Cookie</Text>
                     <Pressable
-                      onPress={() => setIsHelpOpen(true)}
-                      className="flex-row items-center gap-1"
+                      onPress={handleOpenHelp}
+                      className={CLS_GUIDE_ROW}
+                      hitSlop={HIT_SLOP}
                     >
                       <FontAwesome6 name="circle-question" size={14} color="#f472b6" />
-                      <Text className="text-xs font-semibold text-pink-500">Guide</Text>
+                      <Text className={CLS_GUIDE_TEXT}>Guide</Text>
                     </Pressable>
                   </View>
 
@@ -144,7 +179,7 @@ export default function LoginScreen() {
                 </View>
 
                 <Button variant="gradient" isLoading={isLoading} onPress={handleConnect}>
-                  <Text className="font-bold text-white">Validate Session</Text>
+                  <Text className={CLS_VALIDATE_TEXT}>Validate Session</Text>
                   <FontAwesome6 name="arrow-right" size={16} color="white" />
                 </Button>
               </View>
@@ -153,7 +188,7 @@ export default function LoginScreen() {
         </View>
       </View>
 
-      <HelpDialog isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <HelpDialog isOpen={isHelpOpen} onClose={handleCloseHelp} />
     </ScrollView>
   );
 }

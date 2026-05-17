@@ -15,20 +15,32 @@ const STEPS = [
   "Find and copy the 'sessionid' value",
 ] as const;
 
+// ─── Stable class strings ─────────────────────────────────────────────────────
+
+const CLS_ROOT = "gap-4";
+const CLS_STEP_ROW = "flex-row items-start gap-3";
+const CLS_STEP_BADGE =
+  "h-6 w-6 items-center justify-center rounded-full bg-primary/10";
+const CLS_STEP_NUM = "text-xs font-bold text-primary";
+const CLS_STEP_TEXT = "flex-1 text-foreground dark:text-dark-foreground";
+const CLS_CLOSE_BTN = "mt-4";
+
 export const HelpDialog = memo(function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Manual Setup Guide">
-      <View className="gap-4">
+      <View className={CLS_ROOT}>
         {STEPS.map((step, i) => (
-          <View key={i} className="flex-row items-start gap-3">
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-pink-500/10">
-              <Text className="text-xs font-bold text-pink-500">{i + 1}</Text>
+          <View key={i} className={CLS_STEP_ROW}>
+            <View className={CLS_STEP_BADGE}>
+              <Text className={CLS_STEP_NUM}>{i + 1}</Text>
             </View>
-            <Text className="flex-1 text-zinc-700 dark:text-zinc-300">{step}</Text>
+            <Text className={CLS_STEP_TEXT}>{step}</Text>
           </View>
         ))}
-        <Button variant="secondary" className="mt-4" onPress={onClose}>
-          <Text className="font-bold dark:text-white">Got it, thanks!</Text>
+        <Button variant="secondary" className={CLS_CLOSE_BTN} onPress={onClose}>
+          <Text className="font-bold text-foreground dark:text-dark-foreground">
+            Got it, thanks!
+          </Text>
         </Button>
       </View>
     </Dialog>

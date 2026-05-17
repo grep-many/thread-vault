@@ -16,7 +16,6 @@ interface SyncEngineState {
   mediaCount: number;
   reelCount: number;
   linkCount: number;
-  // Actions
   syncInbox: () => Promise<void>;
   syncThreadItems: (threadIds: string[]) => Promise<void>;
   syncSingleThread: (threadId: string, username: string) => Promise<void>;
@@ -25,15 +24,19 @@ interface SyncEngineState {
   resetCounts: () => void;
 }
 
+const INITIAL_COUNTS = {
+  totalItemsScanned: 0,
+  mediaCount: 0,
+  reelCount: 0,
+  linkCount: 0,
+} as const;
+
 export const useSync = create<SyncEngineState>((set, get) => ({
   isSyncing: false,
   isPaused: false,
   progressStatus: "Idle",
   currentSyncingThreadId: null,
-  totalItemsScanned: 0,
-  mediaCount: 0,
-  reelCount: 0,
-  linkCount: 0,
+  ...INITIAL_COUNTS,
 
   incrementCounts: (scanned, media, reel, link) =>
     set((state) => ({
@@ -43,10 +46,17 @@ export const useSync = create<SyncEngineState>((set, get) => ({
       linkCount: state.linkCount + link,
     })),
 
-  resetCounts: () =>
-    set({ totalItemsScanned: 0, mediaCount: 0, reelCount: 0, linkCount: 0 }),
+  resetCounts: () => set(INITIAL_COUNTS),
 
-  // ─── Sync a single thread by ID ──────────────────────────────────────────
+  pauseSync: () =>
+    set({
+      isPaused: true,
+      isSyncing: false,
+      progressStatus: "Paused",
+      currentSyncingThreadId: null,
+    }),
+
+  // ─── Sync a single thread ─────────────────────────────────────────────────
   syncSingleThread: async (threadId, username) => {
     if (get().isSyncing) return;
 
@@ -65,14 +75,13 @@ export const useSync = create<SyncEngineState>((set, get) => ({
     }
 
     try {
-      let threadCursor = await getCursor(`thread_${threadId}`);
+      let cursor = await getCursor(`thread_${threadId}`);
 
-      // Fresh sync — clear stale items first
-      if (!threadCursor) {
+      if (!cursor) {
         await database.write(async () => {
-          const oldItems = await database.get("media").query(Q.where("inbox_id", threadId)).fetch();
-          if (oldItems.length > 0) {
-            await database.batch(...oldItems.map((item) => item.prepareDestroyPermanently()));
+          const old = await database.get("media").query(Q.where("inbox_id", threadId)).fetch();
+          if (old.length > 0) {
+            await database.batch(...old.map((item) => item.prepareDestroyPermanently()));
           }
         });
       }
@@ -84,32 +93,32 @@ export const useSync = create<SyncEngineState>((set, get) => ({
         const res = await IGThread({
           sessionId,
           threadId,
-          cursor: threadCursor,
+          cursor,
           inboxId: threadId,
-          csrfToken: csrfToken || undefined,
-          appId: appId || undefined,
+          csrfToken: csrfToken ?? undefined,
+          appId: appId ?? undefined,
         });
 
         if (res.error) {
-          console.error("[SyncSingleThread] Error:", res.error);
+          console.error("[syncSingleThread] Error:", res.error);
           break;
         }
 
-        const itemsScanned = res.data?.items?.length || 0;
-        const counts = res.data?.counts || { media: 0, reel: 0, link: 0 };
+        const itemsScanned = res.data?.items?.length ?? 0;
+        const counts = res.data?.counts ?? { media: 0, reel: 0, link: 0 };
         get().incrementCounts(itemsScanned, counts.media, counts.reel, counts.link);
 
-        threadCursor = res.data?.oldest_cursor || "";
+        cursor = res.data?.oldest_cursor ?? "";
         hasMore = res.data?.has_older === true;
 
-        if (threadCursor) await setCursor(`thread_${threadId}`, threadCursor);
+        if (cursor) await setCursor(`thread_${threadId}`, cursor);
       }
 
       if (!get().isPaused) {
         set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Thread sync complete" });
       }
     } catch (e) {
-      console.error("[SyncSingleThread] Exception:", e);
+      console.error("[syncSingleThread] Exception:", e);
       set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Error syncing thread" });
     }
   },
@@ -133,7 +142,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
     }
 
     try {
-      let inboxCursor = await getCursor("inbox_root");
+      let cursor = await getCursor("inbox_root");
       let hasMore = true;
 
       while (hasMore) {
@@ -143,34 +152,34 @@ export const useSync = create<SyncEngineState>((set, get) => ({
 
         const res = await IGInbox({
           sessionId,
-          cursor: inboxCursor,
-          csrfToken: csrfToken || undefined,
-          appId: appId || undefined,
+          cursor,
+          csrfToken: csrfToken ?? undefined,
+          appId: appId ?? undefined,
         });
 
         if (res.error) {
-          set({ progressStatus: "Inbox error: " + res.error });
+          set({ progressStatus: `Inbox error: ${res.error}` });
           break;
         }
 
-        inboxCursor = res.data?.oldest_cursor || "";
+        cursor = res.data?.oldest_cursor ?? "";
         hasMore = res.data?.has_older === true;
 
-        if (inboxCursor) await setCursor("inbox_root", inboxCursor);
+        if (cursor) await setCursor("inbox_root", cursor);
       }
 
-      if (!get().isPaused) {
-        set({ progressStatus: "Inbox sync complete", isSyncing: false, currentSyncingThreadId: null });
-      } else {
-        set({ progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null });
-      }
+      set(
+        get().isPaused
+          ? { progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null }
+          : { progressStatus: "Inbox sync complete", isSyncing: false, currentSyncingThreadId: null },
+      );
     } catch (e) {
-      console.error("[SyncInbox] Exception:", e);
+      console.error("[syncInbox] Exception:", e);
       set({ isSyncing: false, progressStatus: "Error during inbox sync", currentSyncingThreadId: null });
     }
   },
 
-  // ─── Sync a batch of threads by IDs ──────────────────────────────────────
+  // ─── Batch thread sync ────────────────────────────────────────────────────
   syncThreadItems: async (threadIds) => {
     if (get().isSyncing) return;
 
@@ -202,16 +211,16 @@ export const useSync = create<SyncEngineState>((set, get) => ({
           currentSyncingThreadId: thread.threadId,
         });
 
-        let threadCursor = await getCursor(`thread_${thread.threadId}`);
+        let cursor = await getCursor(`thread_${thread.threadId}`);
 
-        if (!threadCursor) {
+        if (!cursor) {
           await database.write(async () => {
-            const oldItems = await database
+            const old = await database
               .get("media")
               .query(Q.where("inbox_id", thread.threadId))
               .fetch();
-            if (oldItems.length > 0) {
-              await database.batch(...oldItems.map((item) => item.prepareDestroyPermanently()));
+            if (old.length > 0) {
+              await database.batch(...old.map((item) => item.prepareDestroyPermanently()));
             }
           });
         }
@@ -223,40 +232,36 @@ export const useSync = create<SyncEngineState>((set, get) => ({
           const res = await IGThread({
             sessionId,
             threadId: thread.threadId,
-            cursor: threadCursor,
+            cursor,
             inboxId: thread.threadId,
-            csrfToken: csrfToken || undefined,
-            appId: appId || undefined,
+            csrfToken: csrfToken ?? undefined,
+            appId: appId ?? undefined,
           });
 
           if (res.error) {
-            console.error("[SyncThreadItems] Thread error:", res.error);
+            console.error("[syncThreadItems] Thread error:", res.error);
             break;
           }
 
-          const itemsScanned = res.data?.items?.length || 0;
-          const counts = res.data?.counts || { media: 0, reel: 0, link: 0 };
+          const itemsScanned = res.data?.items?.length ?? 0;
+          const counts = res.data?.counts ?? { media: 0, reel: 0, link: 0 };
           get().incrementCounts(itemsScanned, counts.media, counts.reel, counts.link);
 
-          threadCursor = res.data?.oldest_cursor || "";
+          cursor = res.data?.oldest_cursor ?? "";
           hasMore = res.data?.has_older === true;
 
-          if (threadCursor) await setCursor(`thread_${thread.threadId}`, threadCursor);
+          if (cursor) await setCursor(`thread_${thread.threadId}`, cursor);
         }
       }
 
-      if (!get().isPaused) {
-        set({ progressStatus: "Sync complete", isSyncing: false, currentSyncingThreadId: null });
-      } else {
-        set({ progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null });
-      }
+      set(
+        get().isPaused
+          ? { progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null }
+          : { progressStatus: "Sync complete", isSyncing: false, currentSyncingThreadId: null },
+      );
     } catch (e) {
-      console.error("[SyncThreadItems] Exception:", e);
+      console.error("[syncThreadItems] Exception:", e);
       set({ isSyncing: false, progressStatus: "Error during thread items sync", currentSyncingThreadId: null });
     }
-  },
-
-  pauseSync: () => {
-    set({ isPaused: true, isSyncing: false, progressStatus: "Paused", currentSyncingThreadId: null });
   },
 }));

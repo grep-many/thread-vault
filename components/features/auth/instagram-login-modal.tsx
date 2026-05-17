@@ -1,8 +1,11 @@
-import { useCallback, useRef, useState } from "react";
-import { Modal, View, ActivityIndicator, Platform } from "react-native";
-import { WebView, WebViewNavigation } from "react-native-webview";
+import { FontAwesome6 } from "@expo/vector-icons";
 import CookieManager from "@react-native-cookies/cookies";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Modal, Platform, Pressable, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { WebView, type WebViewNavigation } from "react-native-webview";
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   isOpen: boolean;
@@ -10,9 +13,14 @@ interface Props {
   onSessionExtracted: (sessionId: string, csrfToken?: string, appId?: string) => void;
 }
 
+// ─── Static constants ─────────────────────────────────────────────────────────
+
 const IG_LOGIN_URL = "https://www.instagram.com/accounts/login/";
 const IG_COOKIE_URL = "https://www.instagram.com";
 const IG_HOST = "instagram.com";
+const POLLING_INTERVAL_MS = 1000;
+const NAV_COOKIE_DELAY_MS = 500;
+const ORIGIN_WHITELIST = ["*"];
 
 const USER_AGENT =
   Platform.OS === "android"
@@ -33,11 +41,44 @@ const INJECTED_JAVASCRIPT = `
   true;
 `;
 
-const WV_SOURCE = { uri: IG_LOGIN_URL } as const;
+// ─── Stable class strings ─────────────────────────────────────────────────────
 
-export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) {
+const CLS_MODAL_ROOT = "flex-1 bg-white dark:bg-[#1c2a33]";
+const CLS_WEBVIEW = "flex-1 bg-white dark:bg-[#1c2a33]";
+const CLS_LOADER_OVERLAY =
+  "absolute inset-0 z-50 items-center justify-center bg-white dark:bg-[#1c2a33]";
+const CLS_CLOSE_BTN =
+  "absolute left-4 z-50 h-10 w-10 items-center justify-center rounded-full bg-black/10 dark:bg-white/10";
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export const InstaLoginModal = memo(function InstaLoginModal({
+  isOpen,
+  onClose,
+  onSessionExtracted,
+}: Props) {
   const [loading, setLoading] = useState(true);
   const appIdRef = useRef<string | undefined>(undefined);
+  const webViewRef = useRef<WebView>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const insets = useSafeAreaInsets();
+
+  const source = useMemo(() => ({ uri: IG_LOGIN_URL }), []);
+
+  const clearPolling = useCallback(() => {
+    if (pollingRef.current !== null) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const clearNavTimer = useCallback(() => {
+    if (navTimerRef.current !== null) {
+      clearTimeout(navTimerRef.current);
+      navTimerRef.current = null;
+    }
+  }, []);
 
   const checkNativeCookies = useCallback(async () => {
     try {
@@ -46,6 +87,7 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
       }
       const cookies = await CookieManager.get(IG_COOKIE_URL, true);
       if (cookies?.sessionid) {
+        clearPolling();
         onSessionExtracted(
           cookies.sessionid.value,
           cookies.csrftoken?.value,
@@ -54,19 +96,30 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
         onClose();
       }
     } catch (error: unknown) {
-      console.error(
-        `[IG-AUTH] Cookie Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      console.error("[IG-AUTH] Cookie Error:", error);
     }
-  }, [onClose, onSessionExtracted]);
+  }, [clearPolling, onClose, onSessionExtracted]);
+
+  useEffect(() => {
+    if (isOpen) {
+      pollingRef.current = setInterval(checkNativeCookies, POLLING_INTERVAL_MS);
+    } else {
+      clearPolling();
+      setLoading(true);
+    }
+    return clearPolling;
+  }, [isOpen, checkNativeCookies, clearPolling]);
+
+  useEffect(() => clearNavTimer, [clearNavTimer]);
 
   const handleNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
       if (!navState.loading && navState.url.includes(IG_HOST)) {
-        setTimeout(checkNativeCookies, 1000);
+        clearNavTimer();
+        navTimerRef.current = setTimeout(checkNativeCookies, NAV_COOKIE_DELAY_MS);
       }
     },
-    [checkNativeCookies],
+    [checkNativeCookies, clearNavTimer],
   );
 
   const handleLoadStart = useCallback(() => setLoading(true), []);
@@ -78,26 +131,27 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
 
   const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
-      const data = JSON.parse(event.nativeEvent.data);
+      const data = JSON.parse(event.nativeEvent.data) as { type?: string; appId?: string };
       if (data.type === "IG_APP_ID" && data.appId) {
         appIdRef.current = data.appId;
       }
     } catch {
-      console.error("[IG-AUTH] Message parse error");
+      // silent
     }
   }, []);
 
   return (
     <Modal
       visible={isOpen}
+      transparent={false}
       animationType="slide"
-      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-background">
-        <SafeAreaView className="flex-1">
+      <View className={CLS_MODAL_ROOT}>
+        <SafeAreaView style={{ flex: 1 }}>
           <WebView
-            source={WV_SOURCE}
+            ref={webViewRef}
+            source={source}
             onNavigationStateChange={handleNavigationStateChange}
             onLoadStart={handleLoadStart}
             onLoadEnd={handleLoadEnd}
@@ -107,17 +161,32 @@ export function InstaLoginModal({ isOpen, onClose, onSessionExtracted }: Props) 
             thirdPartyCookiesEnabled
             domStorageEnabled
             javaScriptEnabled
-            className="flex-1"
+            cacheEnabled
+            allowsInlineMediaPlayback
+            mixedContentMode="always"
+            originWhitelist={ORIGIN_WHITELIST}
+            setSupportMultipleWindows={false}
+            incognito={false}
+            className={CLS_WEBVIEW}
             androidLayerType={ANDROID_LAYER_TYPE}
             userAgent={USER_AGENT}
           />
+
+          <Pressable
+            onPress={onClose}
+            className={CLS_CLOSE_BTN}
+            style={{ top: Math.max(insets.top, 16) }}
+          >
+            <FontAwesome6 name="xmark" size={20} color="#71717a" />
+          </Pressable>
+
           {loading && (
-            <View className="absolute inset-0 z-50 flex items-center justify-center bg-background/80">
-              <ActivityIndicator size="large" className="text-primary" />
+            <View className={CLS_LOADER_OVERLAY}>
+              <ActivityIndicator size="large" color="#ec4899" />
             </View>
           )}
         </SafeAreaView>
       </View>
     </Modal>
   );
-}
+});

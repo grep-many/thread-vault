@@ -1,7 +1,17 @@
-import { memo, useCallback } from "react";
-import { Image, Pressable, StyleSheet, View, Text } from "react-native";
-import { FontAwesome6 } from "@expo/vector-icons";
 import Media from "@/model/media";
+import { FontAwesome6 } from "@expo/vector-icons";
+import { memo, useCallback } from "react";
+import { Image, Pressable, Text, View } from "react-native";
+
+interface MediaGridItemProps {
+  item: Media;
+  isSelected: boolean;
+  isSelectMode: boolean;
+  profileImageUrl: string | null;
+  onOpen: (item: Media) => void;
+  onToggleSelection: (id: string) => void;
+  onLongPress: (id: string) => void;
+}
 
 function isAudioItem(item: Media): boolean {
   return (
@@ -10,6 +20,37 @@ function isAudioItem(item: Media): boolean {
     !!item.url?.includes("audio")
   );
 }
+
+// ─── Stable class strings ─────────────────────────────────────────────────────
+
+const CLS_PRESSABLE = "aspect-square w-full p-1";
+
+const CLS_CARD_SELECTED =
+  "flex-1 overflow-hidden rounded-2xl border-2 border-primary bg-card dark:bg-dark-card";
+const CLS_CARD_IDLE =
+  "flex-1 overflow-hidden rounded-2xl border border-border bg-card dark:bg-dark-card dark:border-dark-border";
+
+const CLS_LINK_CONTENT =
+  "flex-1 items-center justify-center gap-1 bg-accent/20 p-1 dark:bg-accent/10";
+const CLS_LINK_TEXT = "text-center text-[10px] text-blue-500";
+const CLS_AUDIO_CONTENT = "flex-1 items-center justify-center bg-muted dark:bg-dark-muted";
+const CLS_IMAGE = "flex-1";
+
+const CLS_AVATAR_WRAP =
+  "absolute right-1.5 top-1.5 h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/60";
+const CLS_AVATAR_IMG = "h-full w-full";
+
+const CLS_SELECT_OVERLAY_SELECTED =
+  "absolute inset-0 items-center justify-center bg-primary/20";
+const CLS_SELECT_OVERLAY_IDLE =
+  "absolute inset-0 items-center justify-center bg-black/10";
+
+const CLS_CHECK_SELECTED =
+  "h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-primary";
+const CLS_CHECK_IDLE =
+  "h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-black/20";
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const MediaGridItem = memo(
   function MediaGridItem({
@@ -22,69 +63,64 @@ export const MediaGridItem = memo(
     onLongPress,
   }: MediaGridItemProps) {
     const isAudio = isAudioItem(item);
+    const { itemId } = item;
 
     const handleLongPress = useCallback(
-      () => onLongPress(item.itemId),
-      [onLongPress, item.itemId],
+      () => onLongPress(itemId),
+      [onLongPress, itemId],
     );
 
     const handlePress = useCallback(
-      () => (isSelectMode ? onToggleSelection(item.itemId) : onOpen(item)),
-      [isSelectMode, item, onOpen, onToggleSelection],
+      () => (isSelectMode ? onToggleSelection(itemId) : onOpen(item)),
+      [isSelectMode, item, itemId, onOpen, onToggleSelection],
     );
 
-    const cardStyle = isSelected ? styles.cardSelected : styles.cardDefault;
+    const cardClass = isSelected ? CLS_CARD_SELECTED : CLS_CARD_IDLE;
+    const overlayClass = isSelected
+      ? CLS_SELECT_OVERLAY_SELECTED
+      : CLS_SELECT_OVERLAY_IDLE;
+    const checkClass = isSelected ? CLS_CHECK_SELECTED : CLS_CHECK_IDLE;
 
     return (
       <Pressable
         onLongPress={handleLongPress}
         onPress={handlePress}
         delayLongPress={250}
-        style={styles.gridItem}
+        className={CLS_PRESSABLE}
       >
-        <View style={[styles.card, cardStyle]}>
+        <View className={cardClass}>
           {item.type === "link" ? (
-            <View style={styles.linkContainer}>
+            <View className={CLS_LINK_CONTENT}>
               <FontAwesome6 name="link" size={20} color="#3b82f6" />
-              <Text style={styles.linkText} numberOfLines={1}>
+              <Text className={CLS_LINK_TEXT} numberOfLines={1}>
                 {item.url}
               </Text>
             </View>
           ) : isAudio ? (
-            <View style={styles.audioContainer}>
+            <View className={CLS_AUDIO_CONTENT}>
               <FontAwesome6 name="file-audio" size={24} color="#ec4899" />
             </View>
           ) : (
             <Image
               source={{ uri: item.thumbnailUrl || item.url }}
-              style={styles.mediaImage}
+              className={CLS_IMAGE}
               resizeMode="cover"
             />
           )}
 
-          <View style={styles.senderBadge}>
+          <View className={CLS_AVATAR_WRAP}>
             {item.isSent ? (
               <FontAwesome6 name="user" size={10} color="white" />
             ) : profileImageUrl ? (
-              <Image source={{ uri: profileImageUrl }} style={styles.senderImage} />
+              <Image source={{ uri: profileImageUrl }} className={CLS_AVATAR_IMG} />
             ) : (
               <FontAwesome6 name="user" size={10} color="white" />
             )}
           </View>
 
           {isSelectMode && (
-            <View
-              style={[
-                styles.selectOverlay,
-                isSelected ? styles.selectOverlayActive : styles.selectOverlayInactive,
-              ]}
-            >
-              <View
-                style={[
-                  styles.checkCircle,
-                  isSelected ? styles.checkCircleSelected : styles.checkCircleUnselected,
-                ]}
-              >
+            <View className={overlayClass}>
+              <View className={checkClass}>
                 {isSelected && <FontAwesome6 name="check" size={10} color="white" />}
               </View>
             </View>
@@ -104,92 +140,3 @@ export const MediaGridItem = memo(
     prev.isSelectMode === next.isSelectMode &&
     prev.profileImageUrl === next.profileImageUrl,
 );
-
-const styles = StyleSheet.create({
-  gridItem: {
-    aspectRatio: 1,
-    width: "100%",
-    padding: 4,
-  },
-  card: {
-    flex: 1,
-    overflow: "hidden",
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  cardDefault: {
-    borderColor: "rgba(0,0,0,0.05)",
-    backgroundColor: "#ffffff",
-  },
-  cardSelected: {
-    borderColor: "#ec4899",
-    borderWidth: 2,
-    backgroundColor: "#ffffff",
-  },
-  linkContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#eff6ff",
-    gap: 4,
-    padding: 4,
-  },
-  linkText: {
-    fontSize: 10,
-    color: "#3b82f6",
-    textAlign: "center",
-  },
-  audioContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f4f4f5",
-  },
-  mediaImage: {
-    flex: 1,
-  },
-  senderBadge: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  senderImage: {
-    width: "100%",
-    height: "100%",
-  },
-  selectOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  selectOverlayActive: {
-    backgroundColor: "rgba(236,72,153,0.2)",
-  },
-  selectOverlayInactive: {
-    backgroundColor: "rgba(0,0,0,0.1)",
-  },
-  checkCircle: {
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "white",
-  },
-  checkCircleSelected: {
-    backgroundColor: "#ec4899",
-  },
-  checkCircleUnselected: {
-    backgroundColor: "rgba(0,0,0,0.2)",
-  },
-});

@@ -1,36 +1,344 @@
-import { useState, useEffect, useCallback } from "react";
-import { Image, Modal, Pressable, StyleSheet, Text, View, BackHandler } from "react-native";
-import { FlashList } from "@shopify/flash-list";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
-import { useKeepAwake } from "expo-keep-awake";
-import { FontAwesome6 } from "@expo/vector-icons";
-import { Button, TabButton } from "@/components/ui";
-import { useToast } from "@/components/ui/toast";
 import { MediaGridItem } from "@/components/features/inbox/media-grid-item";
 import { UnsendProgressModal } from "@/components/modals/unsend-progress-modal";
+import { Button, TabButton } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
+import { COLUMN_COUNT } from "@/constants";
 import { useSync } from "@/hooks/sync/use-sync";
 import { useUnsendQueue } from "@/hooks/unsend/use-unsend-queue";
 import { database } from "@/model";
-import Media from "@/model/media";
 import Inbox from "@/model/inbox";
+import Media from "@/model/media";
+import { FontAwesome6 } from "@expo/vector-icons";
 import { Q } from "@nozbe/watermelondb";
-import { COLUMN_COUNT } from "@/constants";
+import { FlashList } from "@shopify/flash-list";
+import * as Haptics from "expo-haptics";
+import { useKeepAwake } from "expo-keep-awake";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  BackHandler,
+  Image,
+  Modal,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
+import { useShallow } from "zustand/react/shallow";
+
+// ─── Static constants ─────────────────────────────────────────────────────────
+
+const FILTER_OPTIONS: { key: "all" | "sent" | "received"; label: string; icon: string }[] = [
+  { key: "all", label: "All", icon: "border-all" },
+  { key: "sent", label: "Sent", icon: "paper-plane" },
+  { key: "received", label: "Received", icon: "inbox" },
+];
+
+const TABS: TabType[] = ["media", "reel", "link"];
+const TAB_ICONS: Record<TabType, string> = { media: "image", reel: "clapperboard", link: "link" };
+const TAB_LABEL_MAP: Record<TabType, string> = { media: "Media", reel: "Reels", link: "Links" };
+const STATS_LABELS = ["SCANNED", "MEDIA", "REELS", "LINKS"] as const;
+const EMPTY_COUNTS = { media: 0, reel: 0, link: 0, interactions: 0 } as const;
+const LIST_CONTENT_STYLE = { paddingHorizontal: 8, paddingBottom: 100 } as const;
+
+function getItemType(item: Media): string {
+  if (item.type === "link") return "link";
+  if (
+    item.itemType === "voice_media" ||
+    item.url?.includes(".m4a") ||
+    item.url?.includes("audio")
+  ) {
+    return "audio";
+  }
+  return item.type;
+}
+
+const mediaKeyExtractor = (item: Media) => item.itemId;
+
+// ─── Stable class strings ─────────────────────────────────────────────────────
+
+const CLS_ROOT = "flex-1 bg-background dark:bg-dark-background";
+
+// ListHeader classes
+const CLS_LH_ROOT = "bg-background dark:bg-dark-background";
+const CLS_LH_HERO = "relative items-center py-16";
+const CLS_LH_BACK =
+  "absolute top-12 left-6 z-50 size-10 items-center justify-center rounded-full bg-card/80 shadow-xl backdrop-blur-md dark:bg-dark-card/80";
+const CLS_LH_AVATAR_OUTER =
+  "h-32 w-32 items-center justify-center overflow-hidden rounded-[40px] border-4 border-background bg-muted shadow-2xl dark:border-dark-background dark:bg-dark-muted";
+const CLS_LH_AVATAR_IMG = "h-full w-full";
+const CLS_LH_SYNC_BTN =
+  "absolute -right-1 -bottom-1 size-8 items-center justify-center rounded-full bg-foreground dark:bg-dark-foreground";
+const CLS_LH_USERNAME =
+  "mt-5 text-2xl font-black tracking-tight text-foreground dark:text-dark-foreground";
+const CLS_LH_INTERACTIONS =
+  "mt-1 text-sm font-semibold text-muted-foreground dark:text-dark-muted-foreground";
+const CLS_LH_STATS_ROW =
+  "mt-3 flex-row items-center gap-3 rounded-full bg-muted/50 px-3 py-1.5 dark:bg-dark-muted/50";
+const CLS_LH_STAT_TEXT =
+  "text-[10px] font-bold tracking-wider text-muted-foreground dark:text-dark-muted-foreground";
+const CLS_LH_TABS_BAR =
+  "bg-background/95 px-6 py-4 backdrop-blur-sm dark:bg-dark-background/95";
+const CLS_LH_TABS_ROW = "flex-row items-center gap-2";
+const CLS_LH_TAB_WRAP =
+  "flex-1 flex-row rounded-2xl border border-border bg-muted/50 p-1.5 dark:border-dark-border dark:bg-dark-muted/50";
+
+const CLS_SEL_ALL_ACTIVE =
+  "h-10 w-10 items-center justify-center rounded-xl border border-primary/40 bg-primary/10";
+const CLS_SEL_ALL_IDLE =
+  "h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50";
+const CLS_FILTER_ACTIVE =
+  "h-10 w-10 items-center justify-center rounded-xl border border-primary/40 bg-primary/10";
+const CLS_FILTER_IDLE =
+  "h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50";
+
+const CLS_FILTER_DROPDOWN =
+  "absolute right-6 top-[220px] w-44 overflow-hidden rounded-2xl border border-border bg-card shadow-xl dark:border-dark-border dark:bg-dark-card";
+const CLS_FILTER_ITEM =
+  "flex-row items-center gap-3 px-4 py-3 active:bg-muted/50 dark:active:bg-dark-muted/50";
+const CLS_FILTER_LABEL_ACTIVE = "flex-1 text-sm font-semibold text-primary";
+const CLS_FILTER_LABEL_IDLE =
+  "flex-1 text-sm font-semibold text-foreground dark:text-dark-foreground";
+
+// Unsend bar
+const CLS_UNSEND_BAR = "absolute right-6 bottom-8 left-6 shadow-2xl";
+const CLS_UNSEND_TEXT = "ml-2 font-black text-white uppercase";
+
+// ─── TabButtonItem ─────────────────────────────────────────────────────────────
+
+interface TabButtonItemProps {
+  tab: TabType;
+  activeTab: TabType;
+  badge: number;
+  setActiveTab: (tab: TabType) => void;
+}
+
+const TabButtonItem = memo(function TabButtonItem({
+  tab,
+  activeTab,
+  badge,
+  setActiveTab,
+}: TabButtonItemProps) {
+  const handlePress = useCallback(() => setActiveTab(tab), [setActiveTab, tab]);
+  return (
+    <TabButton
+      active={activeTab === tab}
+      label={activeTab === tab ? TAB_LABEL_MAP[tab] : ""}
+      icon={TAB_ICONS[tab]}
+      badge={badge}
+      onPress={handlePress}
+    />
+  );
+});
+
+// ─── FilterOption ─────────────────────────────────────────────────────────────
+
+interface FilterOptionProps {
+  optionKey: "all" | "sent" | "received";
+  label: string;
+  icon: string;
+  filterMode: "all" | "sent" | "received";
+  setFilterMode: (mode: "all" | "sent" | "received") => void;
+  setFilterOpen: (open: boolean) => void;
+}
+
+const FilterOption = memo(function FilterOption({
+  optionKey,
+  label,
+  icon,
+  filterMode,
+  setFilterMode,
+  setFilterOpen,
+}: FilterOptionProps) {
+  const isActive = filterMode === optionKey;
+  const labelClass = isActive ? CLS_FILTER_LABEL_ACTIVE : CLS_FILTER_LABEL_IDLE;
+
+  const handlePress = useCallback(() => {
+    setFilterMode(optionKey);
+    setFilterOpen(false);
+  }, [optionKey, setFilterMode, setFilterOpen]);
+
+  return (
+    <Pressable onPress={handlePress} className={CLS_FILTER_ITEM}>
+      <FontAwesome6
+        name={icon}
+        size={13}
+        color={isActive ? "#ec4899" : "#71717a"}
+      />
+      <Text className={labelClass}>{label}</Text>
+      {isActive && <FontAwesome6 name="check" size={11} color="#ec4899" />}
+    </Pressable>
+  );
+});
+
+// ─── ListHeader ───────────────────────────────────────────────────────────────
+
+interface ListHeaderProps {
+  profileImageUrl: string | null;
+  threadUsername: string | null;
+  isScraping: boolean;
+  totalItemsScanned: number;
+  statsValues: readonly [number, number, number, number];
+  activeTab: TabType;
+  allMediaCounts: { media: number; reel: number; link: number; interactions: number };
+  allSelected: boolean;
+  filterMode: "all" | "sent" | "received";
+  filterOpen: boolean;
+  handleBack: () => void;
+  handleSyncPress: () => void;
+  handleSelectAll: () => void;
+  handleOpenFilter: () => void;
+  handleCloseFilter: () => void;
+  setActiveTab: (tab: TabType) => void;
+  setFilterMode: (mode: "all" | "sent" | "received") => void;
+  setFilterOpen: (open: boolean) => void;
+}
+
+const ListHeader = memo(function ListHeader({
+  profileImageUrl,
+  threadUsername,
+  isScraping,
+  totalItemsScanned,
+  statsValues,
+  activeTab,
+  allMediaCounts,
+  allSelected,
+  filterMode,
+  filterOpen,
+  handleBack,
+  handleSyncPress,
+  handleSelectAll,
+  handleOpenFilter,
+  handleCloseFilter,
+  setActiveTab,
+  setFilterMode,
+  setFilterOpen,
+}: ListHeaderProps) {
+  const selAllClass = allSelected ? CLS_SEL_ALL_ACTIVE : CLS_SEL_ALL_IDLE;
+  const filterBtnClass = filterMode !== "all" ? CLS_FILTER_ACTIVE : CLS_FILTER_IDLE;
+  const syncBtnColor = isScraping ? "#ec4899" : "#71717a";
+  const syncAnimClass = isScraping ? "animate-spin" : "";
+
+  return (
+    <View className={CLS_LH_ROOT}>
+      <View className={CLS_LH_HERO}>
+        <Pressable onPress={handleBack} className={CLS_LH_BACK}>
+          <FontAwesome6 name="chevron-left" size={18} color="#71717a" />
+        </Pressable>
+
+        <View className="relative">
+          <View className={CLS_LH_AVATAR_OUTER}>
+            {profileImageUrl ? (
+              <Image
+                source={{ uri: profileImageUrl }}
+                className={CLS_LH_AVATAR_IMG}
+                resizeMode="cover"
+              />
+            ) : (
+              <FontAwesome6 name="user" size={48} color="#a1a1aa" />
+            )}
+          </View>
+
+          <Pressable onPress={handleSyncPress} className={CLS_LH_SYNC_BTN}>
+            <FontAwesome6
+              name="rotate"
+              size={14}
+              color={syncBtnColor}
+              className={syncAnimClass}
+            />
+          </Pressable>
+        </View>
+
+        <Text className={CLS_LH_USERNAME}>
+          {threadUsername ?? "Loading..."}
+        </Text>
+        <Text className={CLS_LH_INTERACTIONS}>
+          Interactions: {allMediaCounts.interactions}
+        </Text>
+
+        {isScraping && totalItemsScanned > 0 && (
+          <View className={CLS_LH_STATS_ROW}>
+            {STATS_LABELS.map((label, i) => (
+              <Text key={label} className={CLS_LH_STAT_TEXT}>
+                {label}: {statsValues[i]}
+              </Text>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View className={CLS_LH_TABS_BAR}>
+        <View className={CLS_LH_TABS_ROW}>
+          <View className={CLS_LH_TAB_WRAP}>
+            {TABS.map((tab) => (
+              <TabButtonItem
+                key={tab}
+                tab={tab}
+                activeTab={activeTab}
+                badge={allMediaCounts[tab]}
+                setActiveTab={setActiveTab}
+              />
+            ))}
+          </View>
+
+          <Pressable onPress={handleSelectAll} className={selAllClass}>
+            <FontAwesome6
+              name={allSelected ? "check-double" : "check-square"}
+              size={14}
+              color={allSelected ? "#ec4899" : "#71717a"}
+            />
+          </Pressable>
+
+          <Pressable onPress={handleOpenFilter} className={filterBtnClass}>
+            <FontAwesome6
+              name="filter"
+              size={14}
+              color={filterMode !== "all" ? "#ec4899" : "#71717a"}
+            />
+          </Pressable>
+        </View>
+      </View>
+
+      {filterOpen && (
+        <View className={CLS_FILTER_DROPDOWN} style={{ zIndex: 50, elevation: 50 }}>
+          {FILTER_OPTIONS.map(({ key, label, icon }) => (
+            <FilterOption
+              key={key}
+              optionKey={key}
+              label={label}
+              icon={icon}
+              filterMode={filterMode}
+              setFilterMode={setFilterMode}
+              setFilterOpen={setFilterOpen}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+});
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ThreadDetail() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
   const router = useRouter();
 
-  // Keep screen on while browsing the thread media grid
   useKeepAwake();
 
-  const [activeTab, setActiveTab] = useState<TabType>("media");
+  const [activeTab, setActiveTabRaw] = useState<TabType>("media");
+  const setActiveTab = useCallback((tab: TabType) => {
+    setActiveTabRaw(tab);
+    setFilterOpen(false);
+  }, []);
   const [filterMode, setFilterMode] = useState<"all" | "sent" | "received">("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [unsendModalVisible, setUnsendModalVisible] = useState(false);
-
-  const isSelectMode = selectedIds.size > 0;
+  const [thread, setThread] = useState<Inbox | null>(null);
+  const [displayedMedia, setDisplayedMedia] = useState<Media[]>([]);
+  const [allMediaCounts, setAllMediaCounts] = useState<{
+    media: number; reel: number; link: number; interactions: number;
+  }>(EMPTY_COUNTS);
 
   const {
     currentSyncingThreadId,
@@ -40,25 +348,25 @@ export default function ThreadDetail() {
     mediaCount,
     reelCount,
     linkCount,
-  } = useSync();
+  } = useSync(
+    useShallow((s) => ({
+      currentSyncingThreadId: s.currentSyncingThreadId,
+      syncSingleThread: s.syncSingleThread,
+      pauseSync: s.pauseSync,
+      totalItemsScanned: s.totalItemsScanned,
+      mediaCount: s.mediaCount,
+      reelCount: s.reelCount,
+      linkCount: s.linkCount,
+    }))
+  );
+
   const { startUnsend } = useUnsendQueue();
   const { showToast } = useToast();
 
   const isScraping = currentSyncingThreadId === threadId;
+  const isSelectMode = selectedIds.size > 0;
 
-  const [thread, setThread] = useState<Inbox | null>(null);
-  const [displayedMedia, setDisplayedMedia] = useState<Media[]>([]);
-  const [allMediaCounts, setAllMediaCounts] = useState({
-    media: 0,
-    reel: 0,
-    link: 0,
-    interactions: 0,
-  });
-
-  const profileImageUrl = thread?.pfpUrl;
-  const threadUsername = thread?.username;
-
-  // ── DB subscriptions ────────────────────────────────────────────────────────
+  // ─── DB subscriptions ───────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!threadId) return;
@@ -73,7 +381,7 @@ export default function ThreadDetail() {
   }, [threadId]);
 
   useEffect(() => {
-    if (!threadId || !activeTab) return;
+    if (!threadId) return;
     const queryParts = [
       Q.where("thread_id", threadId),
       Q.where("type", activeTab),
@@ -95,21 +403,25 @@ export default function ThreadDetail() {
       .query(Q.where("thread_id", threadId))
       .observe()
       .subscribe((data) => {
-        setAllMediaCounts({
-          media: data.filter((d) => d.type === "media").length,
-          reel: data.filter((d) => d.type === "reel").length,
-          link: data.filter((d) => d.type === "link").length,
-          interactions: data.length,
-        });
+        let media = 0, reel = 0, link = 0;
+        for (const d of data) {
+          if (d.type === "media") media++;
+          else if (d.type === "reel") reel++;
+          else if (d.type === "link") link++;
+        }
+        setAllMediaCounts({ media, reel, link, interactions: data.length });
       });
     return () => sub.unsubscribe();
   }, [threadId]);
 
-  // ── Hardware back — exit select mode first ──────────────────────────────────
+  // ─── Back handler ──────────────────────────────────────────────────────────
+
+  const isSelectModeRef = useRef(isSelectMode);
+  isSelectModeRef.current = isSelectMode;
 
   useEffect(() => {
     const backAction = () => {
-      if (isSelectMode) {
+      if (isSelectModeRef.current) {
         setSelectedIds(new Set());
         return true;
       }
@@ -117,19 +429,29 @@ export default function ThreadDetail() {
     };
     const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => backHandler.remove();
-  }, [isSelectMode]);
+  }, []);
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  // ─── Derived ───────────────────────────────────────────────────────────────
 
   const allSelected = displayedMedia.length > 0 && selectedIds.size === displayedMedia.length;
+  const profileImageUrl = thread?.pfpUrl ?? null;
+  const threadUsername = thread?.username ?? null;
+
+  const statsValues = useMemo(
+    () => [totalItemsScanned, mediaCount, reelCount, linkCount] as const,
+    [totalItemsScanned, mediaCount, reelCount, linkCount],
+  );
+
+  // ─── Stable callbacks ──────────────────────────────────────────────────────
 
   const handleSelectAll = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(displayedMedia.map(m => m.itemId)));
+      setSelectedIds(new Set(displayedMedia.map((m) => m.itemId)));
     }
+    setFilterOpen(false);
   }, [allSelected, displayedMedia]);
 
   const toggleSelection = useCallback((id: string) => {
@@ -166,7 +488,7 @@ export default function ThreadDetail() {
     }));
     startUnsend(inputs);
     setUnsendModalVisible(true);
-    setSelectedIds(new Set()); // Clear selection immediately
+    setSelectedIds(new Set());
   }, [selectedIds, threadId, startUnsend]);
 
   const handleUnsendComplete = useCallback(
@@ -180,279 +502,121 @@ export default function ThreadDetail() {
     [showToast],
   );
 
-  const keyExtractor = useCallback((item: Media) => item.itemId, []);
+  const handleDismissUnsendModal = useCallback(() => setUnsendModalVisible(false), []);
+  const handleCloseFilter = useCallback(() => setFilterOpen(false), []);
+  const handleOpenFilter = useCallback(() => setFilterOpen(true), []);
 
-  const getItemType = useCallback((item: Media) => {
-    if (item.type === "link") return "link";
-    if (
-      item.itemType === "voice_media" ||
-      item.url?.includes(".m4a") ||
-      item.url?.includes("audio")
-    ) {
-      return "audio";
-    }
-    return item.type;
-  }, []);
+  const handleSyncPress = useCallback(() => {
+    if (isScraping) pauseSync();
+    else if (thread) syncSingleThread(threadId, thread.username);
+  }, [isScraping, pauseSync, syncSingleThread, thread, threadId]);
 
-  // ── Sub-components ──────────────────────────────────────────────────────────
-
-  const ListHeader = useCallback(
-    () => (
-      <View className="bg-zinc-50 dark:bg-zinc-950">
-        {/* Profile Section */}
-        <View className="relative items-center py-16">
-          <Pressable
-            onPress={() => router.replace("/inbox")}
-            className="absolute top-12 left-6 z-50 size-10 items-center justify-center rounded-full bg-white/80 shadow-xl backdrop-blur-md dark:bg-zinc-900/80"
-          >
-            <FontAwesome6 name="chevron-left" size={18} color="#71717a" />
-          </Pressable>
-
-          <View className="relative">
-            <View className="h-32 w-32 items-center justify-center overflow-hidden rounded-[40px] border-4 border-white bg-zinc-200 shadow-2xl dark:border-zinc-800 dark:bg-zinc-800">
-              {profileImageUrl ? (
-                <Image
-                  source={{ uri: profileImageUrl }}
-                  className="h-full w-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <FontAwesome6 name="user" size={48} color="#a1a1aa" />
-              )}
-            </View>
-
-            <Pressable
-              onPress={() => {
-                if (isScraping) pauseSync();
-                else if (thread) syncSingleThread(threadId, thread.username);
-              }}
-              className="absolute -right-1 -bottom-1 size-8 items-center justify-center rounded-full bg-zinc-900 dark:bg-white"
-            >
-              <FontAwesome6
-                name="rotate"
-                size={14}
-                color={isScraping ? "#ec4899" : "#71717a"}
-                className={isScraping ? "animate-spin" : ""}
-              />
-            </Pressable>
-          </View>
-
-          <Text className="mt-5 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
-            {threadUsername || "Loading..."}
-          </Text>
-          <Text className="mt-1 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
-            Interactions: {allMediaCounts.interactions}
-          </Text>
-
-          {isScraping && totalItemsScanned > 0 && (
-            <View className="mt-3 flex-row items-center gap-3 rounded-full bg-zinc-200/50 px-3 py-1.5 dark:bg-zinc-800/50">
-              {[
-                ["SCANNED", totalItemsScanned],
-                ["MEDIA", mediaCount],
-                ["REELS", reelCount],
-                ["LINKS", linkCount],
-              ].map(([label, value]) => (
-                <Text
-                  key={label}
-                  className="text-[10px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400"
-                >
-                  {label}: {value}
-                </Text>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Tab + filter row */}
-        <View className="bg-zinc-50/95 px-6 py-4 backdrop-blur-sm dark:bg-zinc-950/95">
-          <View className="flex-row items-center gap-2">
-            <View className="flex-1 flex-row rounded-2xl border border-black/5 bg-zinc-200/50 p-1.5 dark:border-white/5 dark:bg-white/5">
-              {(["media", "reel", "link"] as TabType[]).map((tab) => (
-                <TabButton
-                  key={tab}
-                  active={activeTab === tab}
-                  label={
-                    tab === "link" && activeTab === "link"
-                      ? "Links"
-                      : tab === "reel" && activeTab === "reel"
-                        ? "Reels"
-                        : tab === "media" && activeTab === "media" ? "Media" : ""
-                  }
-                  icon={
-                    tab === "media" ? "image" : tab === "reel" ? "clapperboard" : "link"
-                  }
-                  badge={allMediaCounts[tab]}
-                  onPress={() => setActiveTab(tab)}
-                />
-              ))}
-            </View>
-
-            {/* Select All button */}
-            <Pressable
-              onPress={handleSelectAll}
-              className={`h-10 w-10 items-center justify-center rounded-xl border ${allSelected
-                  ? "border-pink-500/40 bg-pink-500/10"
-                  : "border-black/5 bg-zinc-200/50 dark:border-white/5 dark:bg-white/5"
-                }`}
-            >
-              <FontAwesome6
-                name={allSelected ? "check-double" : "check-square"}
-                size={14}
-                color={allSelected ? "#ec4899" : "#71717a"}
-              />
-            </Pressable>
-
-            {/* Filter button */}
-            <Pressable
-              onPress={() => setFilterOpen(true)}
-              className={`h-10 w-10 items-center justify-center rounded-xl border ${filterMode !== "all"
-                  ? "border-pink-500/40 bg-pink-500/10"
-                  : "border-black/5 bg-zinc-200/50 dark:border-white/5 dark:bg-white/5"
-                }`}
-            >
-              <FontAwesome6
-                name="filter"
-                size={14}
-                color={filterMode !== "all" ? "#ec4899" : "#71717a"}
-              />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Filter dropdown modal */}
-        <Modal
-          visible={filterOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setFilterOpen(false)}
-        >
-          <Pressable style={{ flex: 1 }} onPress={() => setFilterOpen(false)}>
-            <View
-              className="absolute right-6 w-44 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900"
-              style={{ top: 220 }}
-            >
-              {(
-                [
-                  { key: "all", label: "All", icon: "border-all" },
-                  { key: "sent", label: "Sent", icon: "paper-plane" },
-                  { key: "received", label: "Received", icon: "inbox" },
-                ] as { key: "all" | "sent" | "received"; label: string; icon: string }[]
-              ).map(({ key, label, icon }) => (
-                <Pressable
-                  key={key}
-                  onPress={() => {
-                    setFilterMode(key);
-                    setFilterOpen(false);
-                  }}
-                  className="flex-row items-center gap-3 px-4 py-3 active:bg-zinc-100 dark:active:bg-zinc-800"
-                >
-                  <FontAwesome6
-                    name={icon}
-                    size={13}
-                    color={filterMode === key ? "#ec4899" : "#71717a"}
-                  />
-                  <Text
-                    className={`flex-1 text-sm font-semibold ${filterMode === key
-                        ? "text-pink-500"
-                        : "text-zinc-800 dark:text-zinc-200"
-                      }`}
-                  >
-                    {label}
-                  </Text>
-                  {filterMode === key && (
-                    <FontAwesome6 name="check" size={11} color="#ec4899" />
-                  )}
-                </Pressable>
-              ))}
-            </View>
-          </Pressable>
-        </Modal>
-      </View>
-    ),
-    [
-      activeTab,
-      allMediaCounts,
-      filterMode,
-      filterOpen,
-      isScraping,
-      linkCount,
-      mediaCount,
-      pauseSync,
-      reelCount,
-      router,
-      syncSingleThread,
-      profileImageUrl,
-      thread,
-      threadUsername,
-      threadId,
-      totalItemsScanned,
-      allSelected,
-      handleSelectAll,
-    ],
-  );
+  const handleBack = useCallback(() => router.replace("/inbox"), [router]);
 
   const renderItem = useCallback(
-    ({ item }: { item: Media }) => (
-      <MediaGridItem
-        item={item}
-        isSelected={selectedIds.has(item.itemId)}
-        isSelectMode={isSelectMode}
-        profileImageUrl={profileImageUrl}
-        onOpen={handleOpenItem}
-        onToggleSelection={toggleSelection}
-        onLongPress={handleLongPress}
-      />
-    ),
-    [
-      handleLongPress,
-      handleOpenItem,
-      isSelectMode,
-      profileImageUrl,
-      selectedIds,
-      toggleSelection,
-    ],
+    ({ item, extraData }: { item: Media; extraData?: Set<string> }) => {
+      const selected = !!extraData?.has(item.itemId);
+      const isSelecting = !!extraData && extraData.size > 0;
+      return (
+        <MediaGridItem
+          item={item}
+          isSelected={selected}
+          isSelectMode={isSelecting}
+          profileImageUrl={profileImageUrl}
+          onOpen={handleOpenItem}
+          onToggleSelection={toggleSelection}
+          onLongPress={handleLongPress}
+        />
+      );
+    },
+    [handleLongPress, handleOpenItem, profileImageUrl, toggleSelection],
   );
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ─── Stable ListHeaderComponent ────────────────────────────────────────────
+
+  const listHeaderProps: ListHeaderProps = useMemo(() => ({
+    profileImageUrl,
+    threadUsername,
+    isScraping,
+    totalItemsScanned,
+    statsValues,
+    activeTab,
+    allMediaCounts,
+    allSelected,
+    filterMode,
+    filterOpen,
+    handleBack,
+    handleSyncPress,
+    handleSelectAll,
+    handleOpenFilter,
+    handleCloseFilter,
+    setActiveTab,
+    setFilterMode,
+    setFilterOpen,
+  }), [
+    profileImageUrl,
+    threadUsername,
+    isScraping,
+    totalItemsScanned,
+    statsValues,
+    activeTab,
+    allMediaCounts,
+    allSelected,
+    filterMode,
+    filterOpen,
+    handleBack,
+    handleSyncPress,
+    handleSelectAll,
+    handleOpenFilter,
+    handleCloseFilter,
+  ]);
+
+  const ListHeaderComponent = useCallback(
+    () => <ListHeader {...listHeaderProps} />,
+    [listHeaderProps],
+  );
+
+  const handleScroll = useCallback(() => {
+    if (filterOpen) setFilterOpen(false);
+  }, [filterOpen]);
 
   return (
-    <View className="flex-1 bg-zinc-50 dark:bg-zinc-950">
+    <View className={CLS_ROOT}>
       <FlashList
         data={displayedMedia}
         renderItem={renderItem}
-        keyExtractor={keyExtractor}
+        keyExtractor={mediaKeyExtractor}
         getItemType={getItemType}
         numColumns={COLUMN_COUNT}
-        ListHeaderComponent={ListHeader}
-        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={ListHeaderComponent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={LIST_CONTENT_STYLE}
         extraData={selectedIds}
+        estimatedItemSize={130}
+        removeClippedSubviews
+        windowSize={5}
+        initialNumToRender={15}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
       />
 
-      {/* Floating multi-select action bar */}
-      {isSelectMode && selectedIds.size > 0 && (
-        <View className="absolute right-6 bottom-8 left-6 shadow-2xl">
+      {isSelectMode && (
+        <View className={CLS_UNSEND_BAR}>
           <Button variant="gradient" onPress={handleUnsend}>
             <FontAwesome6 name="trash-can" size={16} color="white" />
-            <Text className="ml-2 font-black text-white uppercase">
+            <Text className={CLS_UNSEND_TEXT}>
               Unsend {selectedIds.size} {selectedIds.size === 1 ? "Item" : "Items"}
             </Text>
           </Button>
         </View>
       )}
 
-      {/* Unsend progress modal */}
       <UnsendProgressModal
         isVisible={unsendModalVisible}
-        onDismiss={() => setUnsendModalVisible(false)}
+        onDismiss={handleDismissUnsendModal}
         onComplete={handleUnsendComplete}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: 8,
-    paddingBottom: 100,
-  },
-});

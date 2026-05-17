@@ -1,6 +1,7 @@
 import { igRequest } from "@/lib/instagram/ig";
 import { database } from "@/model";
 import Inbox from "@/model/inbox";
+import { Q } from "@nozbe/watermelondb";
 
 interface IGInboxParams {
   sessionId: string;
@@ -18,6 +19,14 @@ interface IGInboxResult {
   } | null;
 }
 
+type RawThread = Record<string, unknown>;
+type RawUser = { username?: string; full_name?: string; profile_pic_url?: string };
+
+const INBOX_BASE_URL =
+  "https://www.instagram.com/api/v1/direct_v2/inbox/?visual_message_return_type=unseen&thread_message_limit=1&persistentBadging=true&limit=20";
+
+const THREAD_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
 export async function IGInbox({
   sessionId,
   cursor,
@@ -25,11 +34,7 @@ export async function IGInbox({
   appId,
 }: IGInboxParams): Promise<IGInboxResult> {
   try {
-    let url =
-      "https://www.instagram.com/api/v1/direct_v2/inbox/?visual_message_return_type=unseen&thread_message_limit=1&persistentBadging=true&limit=20";
-    if (cursor) {
-      url += `&cursor=${cursor}`;
-    }
+    const url = cursor ? `${INBOX_BASE_URL}&cursor=${cursor}` : INBOX_BASE_URL;
 
     const data = (await igRequest(url, sessionId, {}, csrfToken, appId)) as {
       inbox?: { threads: unknown[]; has_older: boolean; oldest_cursor: string };
@@ -41,29 +46,33 @@ export async function IGInbox({
       throw new Error("Unexpected API response shape");
     }
 
-    const threads = data.inbox.threads || [];
+    const threads = (data.inbox.threads ?? []) as RawThread[];
 
-    // Upsert threads into local database
     if (threads.length > 0) {
+      // Fetch only existing IDs — cheaper than fetching full records
       const allExisting = await database.get<Inbox>("inbox").query().fetch();
       const existingIds = new Set(allExisting.map((t) => t.threadId));
+      const expiredAt = Date.now() + THREAD_TTL_MS;
 
-      await database.write(async () => {
-        const batchOps = (threads as Array<Record<string, unknown>>)
-          .filter((thread) => !existingIds.has(thread.thread_id as string))
-          .map((thread) =>
-            database.get<Inbox>("inbox").prepareCreate((inbox) => {
+      const newThreads = threads.filter(
+        (thread) => !existingIds.has(thread.thread_id as string),
+      );
+
+      if (newThreads.length > 0) {
+        await database.write(async () => {
+          const batchOps = newThreads.map((thread) => {
+            const user = ((thread.users as RawUser[]) ?? [])[0] ?? {};
+            return database.get<Inbox>("inbox").prepareCreate((inbox) => {
               inbox.threadId = thread.thread_id as string;
-              inbox.username = (thread.users as Array<{ username?: string }>)?.[0]?.username || "Unknown";
-              inbox.fullName = (thread.users as Array<{ full_name?: string }>)?.[0]?.full_name || "";
-              inbox.pfpUrl = (thread.users as Array<{ profile_pic_url?: string }>)?.[0]?.profile_pic_url || "";
-              inbox.expired_at = Date.now() + 1000 * 60 * 60 * 24 * 7;
-            }),
-          );
-        if (batchOps.length > 0) {
+              inbox.username = user.username ?? "Unknown";
+              inbox.fullName = user.full_name ?? "";
+              inbox.pfpUrl = user.profile_pic_url ?? "";
+              inbox.expired_at = expiredAt;
+            });
+          });
           await database.batch(...batchOps);
-        }
-      });
+        });
+      }
     }
 
     return {
@@ -75,7 +84,7 @@ export async function IGInbox({
       },
     };
   } catch (error: unknown) {
-    console.error("IGInbox error:", error);
+    console.error("[IGInbox] error:", error);
     return {
       error: error instanceof Error ? error.message : "Internal Server Error",
       data: null,

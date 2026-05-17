@@ -8,6 +8,8 @@ interface AudioPlayerProps {
   isActive?: boolean;
 }
 
+// ─── Static constants ─────────────────────────────────────────────────────────
+
 const AUDIO_MODE = {
   allowsRecordingIOS: false,
   playsInSilentModeIOS: true,
@@ -17,6 +19,30 @@ const AUDIO_MODE = {
   playThroughEarpieceAndroid: false,
 } as const;
 
+// ─── Stable style objects ─────────────────────────────────────────────────────
+
+const PLAY_ICON_OFFSET = { marginLeft: 4 } as const;
+const NO_OFFSET = {} as const;
+
+// ─── Stable class strings ─────────────────────────────────────────────────────
+
+const CLS_ROOT = "flex-1 w-full items-center justify-center bg-black";
+const CLS_MAIN_CONTENT = "items-center justify-center gap-12";
+const CLS_WAVEFORM_ICON = "mb-4 opacity-80";
+const CLS_PRESS = "items-center justify-center active:opacity-80";
+const CLS_PLAY_BTN_WRAP =
+  "h-20 w-20 items-center justify-center rounded-full bg-white/10";
+const CLS_PROGRESS_CONTAINER = "w-72 px-4";
+const CLS_TRACK = "h-1.5 w-full overflow-hidden rounded-full bg-white/20";
+const CLS_FILL = "h-full rounded-full bg-white";
+const CLS_THUMB =
+  "absolute -top-1.5 h-4 w-4 rounded-full bg-white shadow-sm shadow-black/50";
+const CLS_TIME_ROW = "mt-3 flex-row justify-between w-full";
+const CLS_TIME_TEXT = "text-xs font-medium text-white/60 tracking-widest";
+const CLS_STATUS_TEXT = "mt-6 text-sm font-semibold text-white/50 tracking-widest uppercase";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function formatTime(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
   const m = Math.floor(totalSec / 60);
@@ -24,47 +50,18 @@ function formatTime(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const PULSE_SEQUENCE_DURATION = 600;
-const PLAY_ICON_OFFSET = { marginLeft: 6 } as const;
-const NO_OFFSET = {} as const;
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const AudioPlayer = memo(function AudioPlayer({
   url,
   isActive = true,
 }: AudioPlayerProps) {
-
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const pulse = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef<Animated.CompositeAnimation | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  useEffect(() => {
-    if (playing) {
-      pulseAnim.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulse, {
-            toValue: 1.15,
-            duration: PULSE_SEQUENCE_DURATION,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulse, {
-            toValue: 1,
-            duration: PULSE_SEQUENCE_DURATION,
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      pulseAnim.current.start();
-    } else {
-      pulseAnim.current?.stop();
-      pulse.setValue(1);
-    }
-  }, [playing, pulse]);
-
-  // Pause when scrolled off-screen — use ref to avoid stale closure
   useEffect(() => {
     if (!isActive && soundRef.current) {
       soundRef.current.pauseAsync().catch(() => {});
@@ -72,7 +69,6 @@ export const AudioPlayer = memo(function AudioPlayer({
     }
   }, [isActive]);
 
-  // Unload on unmount
   useEffect(() => {
     return () => {
       soundRef.current?.unloadAsync().catch(() => {});
@@ -87,7 +83,6 @@ export const AudioPlayer = memo(function AudioPlayer({
         { shouldPlay: true },
       );
       soundRef.current = newSound;
-
       setPlaying(true);
 
       newSound.setOnPlaybackStatusUpdate((status) => {
@@ -116,36 +111,44 @@ export const AudioPlayer = memo(function AudioPlayer({
   const iconOffset = playing ? NO_OFFSET : PLAY_ICON_OFFSET;
 
   return (
-    <View className="flex-1 items-center justify-center bg-zinc-900 dark:bg-zinc-950">
-      <Pressable onPress={togglePlayback} className="items-center justify-center">
-        <Animated.View
-          className="h-32 w-32 items-center justify-center rounded-full border border-pink-500/30 bg-zinc-800 shadow-lg shadow-black/40"
-          style={{ transform: [{ scale: pulse }] }}
-        >
-          {playing && <View className="absolute h-32 w-32 rounded-full border-2 border-pink-500/20" />}
-          <FontAwesome6
-            name={playing ? "pause" : "play"}
-            size={44}
-            color="#ec4899"
-            style={iconOffset}
-          />
-        </Animated.View>
-      </Pressable>
+    <View className={CLS_ROOT}>
+      <View className={CLS_MAIN_CONTENT}>
+        <FontAwesome6
+          name="music"
+          size={48}
+          color="white"
+          className={CLS_WAVEFORM_ICON}
+        />
 
-      <View className="mt-8 w-64 items-center gap-2">
-        <View className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-700">
-          <View className="h-full rounded-full bg-pink-500" style={{ width: progressWidth }} />
+        <Pressable onPress={togglePlayback} className={CLS_PRESS}>
+          <View className={CLS_PLAY_BTN_WRAP}>
+            <FontAwesome6
+              name={playing ? "pause" : "play"}
+              size={32}
+              color="white"
+              style={iconOffset}
+            />
+          </View>
+        </Pressable>
+
+        <View className={CLS_PROGRESS_CONTAINER}>
+          <View className="relative justify-center">
+            <View className={CLS_TRACK}>
+              <View className={CLS_FILL} style={{ width: progressWidth }} />
+            </View>
+            <View className={CLS_THUMB} style={{ left: progressWidth, marginLeft: -8 }} />
+          </View>
+
+          <View className={CLS_TIME_ROW}>
+            <Text className={CLS_TIME_TEXT}>{formatTime(position)}</Text>
+            <Text className={CLS_TIME_TEXT}>{formatTime(duration)}</Text>
+          </View>
         </View>
 
-        <View className="w-full flex-row justify-between">
-          <Text className="text-xs text-zinc-400">{formatTime(position)}</Text>
-          <Text className="text-xs text-zinc-400">{formatTime(duration)}</Text>
-        </View>
+        <Text className={CLS_STATUS_TEXT}>
+          {playing ? "Playing" : "Paused"}
+        </Text>
       </View>
-
-      <Text className="mt-4 text-sm font-medium tracking-wide text-zinc-400">
-        {playing ? "Playing…" : "Tap to Play"}
-      </Text>
     </View>
   );
 });

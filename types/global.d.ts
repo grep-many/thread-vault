@@ -1,4 +1,4 @@
-import { PressableProps, TextInputProps } from "react-native";
+import type { PressableProps } from "react-native";
 
 declare global {
   // ─── UI Component Props ────────────────────────────────────────────────────
@@ -12,29 +12,16 @@ declare global {
     fullScreen?: boolean;
   }
 
+  // Note: ButtonProps is also declared locally in button.tsx — global kept for
+  // cross-file usage without re-importing.
   interface ButtonProps extends PressableProps {
     isLoading?: boolean;
     variant?: "primary" | "secondary" | "gradient";
     className?: string;
-    children: React.ReactNode;
-  }
-
-  interface InputProps extends TextInputProps {
-    icon?: React.ReactNode;
+    children?: React.ReactNode;
   }
 
   // ─── Instagram API Types ───────────────────────────────────────────────────
-
-  interface InboxPromise {
-    thread: unknown;
-    status: "fail" | string;
-    message: string;
-    inbox: {
-      threads: unknown[];
-      has_older: boolean;
-      oldest_cursor: string;
-    };
-  }
 
   interface ExtractedMedia {
     type: "media" | "reel" | "link";
@@ -76,25 +63,16 @@ declare global {
 
   // ─── Unsend Types ──────────────────────────────────────────────────────────
 
-  /**
-   * Minimal input needed to queue an unsend job.
-   * The queue hook derives all state from this.
-   */
   interface UnsendJobInput {
     itemId: string;
     threadId: string;
   }
 
-  /**
-   * A single job in the unsend processing queue.
-   * Carries its current processing status and optional error message.
-   */
   interface UnsendJob extends UnsendJobInput {
     status: "pending" | "processing" | "success" | "failed";
     error?: string;
   }
 
-  /** Snapshot of overall unsend progress for the progress modal. */
   interface UnsendProgress {
     total: number;
     completed: number;
@@ -102,23 +80,15 @@ declare global {
     failureCount: number;
     currentItemId: string | null;
   }
+
   // ─── Toast ────────────────────────────────────────────────────────────────
 
-  /**
-   * Severity level for a toast notification.
-   * Mirrors the ToastType exported from components/ui/toast.tsx.
-   */
   type ToastType = "success" | "error" | "info";
 
-  /**
-   * A single toast notification entry managed by ToastProvider.
-   * Mirrors the ToastMessage exported from components/ui/toast.tsx.
-   */
   interface ToastMessage {
     id: string;
     message: string;
     type: ToastType;
-    /** Display duration in ms. Defaults to 3000. */
     duration?: number;
   }
 }

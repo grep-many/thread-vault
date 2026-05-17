@@ -1,11 +1,19 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 const GRADIENT_PINK = ["#db2777", "#9333ea"] as const;
 const GRADIENT_BLUE = ["#2563eb", "#3b82f6"] as const;
 const GRADIENT_START = { x: 0, y: 0 } as const;
 const GRADIENT_END = { x: 1, y: 0 } as const;
+
+// Stable hoisted class strings
+const CLS_BASE =
+  "relative overflow-hidden rounded-[16px] px-6 py-4 shadow-sm active:opacity-90";
+const CLS_SECONDARY =
+  "relative overflow-hidden rounded-[16px] px-6 py-4 border border-border/50 bg-card/80 shadow-sm dark:bg-dark-card/80 active:opacity-90";
+const CLS_DISABLED = " opacity-50 active:opacity-50";
+const CLS_ROW = "flex-row items-center justify-center gap-3 z-10";
 
 export interface ButtonProps {
   variant?: "gradient" | "primary" | "secondary";
@@ -13,7 +21,6 @@ export interface ButtonProps {
   disabled?: boolean;
   onPress?: () => void;
   children?: React.ReactNode;
-  style?: object;
   className?: string;
 }
 
@@ -26,37 +33,35 @@ export const Button = memo(function Button({
   className = "",
 }: ButtonProps) {
   const isDisabled = disabled || isLoading;
+  const isSecondary = variant === "secondary";
+  const gradientColors = variant === "primary" ? GRADIENT_BLUE : GRADIENT_PINK;
 
   const handlePress = useCallback(() => {
     if (!isDisabled) onPress?.();
   }, [isDisabled, onPress]);
 
-  const gradientColors =
-    variant === "primary" ? GRADIENT_BLUE : GRADIENT_PINK;
+  const rootClass =
+    (isSecondary ? CLS_SECONDARY : CLS_BASE) +
+    (isDisabled ? CLS_DISABLED : "") +
+    (className ? ` ${className}` : "");
 
   return (
     <Pressable
       onPress={handlePress}
       disabled={isDisabled}
-      className={`relative overflow-hidden rounded-2xl py-4 px-6 active:scale-[0.97] ${
-        isDisabled ? "opacity-50" : ""
-      } ${
-        variant === "secondary"
-          ? "bg-black/10 border border-black/10 dark:bg-white/10 dark:border-white/10"
-          : ""
-      } ${className}`}
+      className={rootClass}
     >
-      {variant !== "secondary" && (
+      {!isSecondary && (
         <LinearGradient
           colors={gradientColors}
           start={GRADIENT_START}
           end={GRADIENT_END}
-          className="absolute inset-0"
+          className="absolute bottom-0 left-0 right-0 top-0"
         />
       )}
-      <View className="flex-row items-center justify-center gap-2">
+      <View className={CLS_ROW}>
         {isLoading ? (
-          <ActivityIndicator size="small" color="white" />
+          <ActivityIndicator size="small" color={isSecondary ? "#71717a" : "white"} />
         ) : (
           children
         )}

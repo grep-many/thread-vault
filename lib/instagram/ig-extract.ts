@@ -1,17 +1,23 @@
-// Robust High-Performance Recursive Search
-export const extractItem = (item: unknown, peerIds: string[]): ExtractedMedia | null => {
+const SKIP_ITEM_TYPES = new Set([
+  "text",
+  "action_log",
+  "like",
+  "video_call",
+  "raven_media",
+  "story_share",
+]);
+
+const REEL_ITEM_TYPES = new Set(["clip", "media_share", "reel_share"]);
+const MEDIA_ITEM_TYPES = new Set(["media", "voice_media", "animated_media"]);
+
+export function extractItem(item: unknown, peerIds: string[]): ExtractedMedia | null {
   try {
     const record = item as Record<string, unknown>;
 
-    // Instantly drop non-extractive purely text primitives
+    // Fast early exit for non-extractable types
     if (
-      record.item_type === "text" ||
-      record.item_type === "action_log" ||
-      record.item_type === "like" ||
-      record.item_type === "video_call" ||
-      record.item_type === "raven_media" ||
+      SKIP_ITEM_TYPES.has(record.item_type as string) ||
       !!record.raven_media ||
-      record.item_type === "story_share" ||
       !!record.story_share
     ) {
       return null;
@@ -19,7 +25,8 @@ export const extractItem = (item: unknown, peerIds: string[]): ExtractedMedia | 
 
     const id = record.item_id as string;
     const sender_pk =
-      (record.user_id || record.sender_id || record.sender)?.toString() || "";
+      ((record.user_id ?? record.sender_id ?? record.sender) as string | number | undefined)
+        ?.toString() ?? "";
 
     const is_sent =
       record.is_sent_by_viewer !== undefined
@@ -33,10 +40,24 @@ export const extractItem = (item: unknown, peerIds: string[]): ExtractedMedia | 
         : rawTimestamp
       : Date.now();
 
-    let extracted: ExtractedMedia = {
+    const itemType = record.item_type as string;
+
+    const isGroupMedia = MEDIA_ITEM_TYPES.has(itemType);
+    const isGroupReel =
+      REEL_ITEM_TYPES.has(itemType) ||
+      !!record.clip ||
+      !!record.reel_share ||
+      (record.media as Record<string, unknown>)?.product_type === "clips" ||
+      ((record.direct_media_share as Record<string, Record<string, unknown>>)?.media
+        ?.product_type === "clips");
+    const isGroupLink = itemType === "link";
+
+    if (!isGroupMedia && !isGroupReel && !isGroupLink) return null;
+
+    const extracted: ExtractedMedia = {
       id,
       type: "media",
-      item_type: "",
+      item_type: itemType,
       content_type: "photo",
       url: "",
       preview: "",
@@ -47,50 +68,31 @@ export const extractItem = (item: unknown, peerIds: string[]): ExtractedMedia | 
       timestamp,
     };
 
-    const itemType = record.item_type as string;
-    extracted.item_type = itemType;
-
-    const isGroupMedia = ["media", "voice_media", "animated_media"].includes(itemType);
-    const isGroupReel =
-      ["clip", "media_share", "reel_share"].includes(itemType) ||
-      !!record.clip ||
-      !!record.reel_share ||
-      ((record.media as Record<string, unknown>)?.product_type === "clips") ||
-      (record.direct_media_share as Record<string, unknown>)?.media &&
-        ((record.direct_media_share as Record<string, Record<string, unknown>>).media
-          ?.product_type === "clips");
-    const isGroupLink = itemType === "link";
-
-    if (!isGroupMedia && !isGroupReel && !isGroupLink) {
-      return null;
-    }
-
     if (itemType === "voice_media" || !!record.voice_media) {
       extracted.type = "media";
       extracted.content_type = "audio";
       extracted.url =
         ((record.voice_media as Record<string, Record<string, Record<string, string>>>)?.media
-          ?.audio?.audio_src) || "voice_media";
+          ?.audio?.audio_src) ?? "voice_media";
       extracted.text = "Voice Message";
     } else if (isGroupLink) {
       const link = record.link as Record<string, Record<string, string>> | undefined;
       extracted.type = "link";
       extracted.content_type = "url";
-      const linkUrl = link?.link_context?.link_url
-        || (typeof link?.text === "string" ? link.text : undefined)
-        || "link";
-      const linkText = link?.link_context?.link_title
-        || (typeof link?.text === "string" ? link.text : undefined)
-        || "";
-      extracted.url = linkUrl;
-      extracted.text = linkText;
+      extracted.url =
+        link?.link_context?.link_url ??
+        (typeof link?.text === "string" ? link.text : undefined) ??
+        "link";
+      extracted.text =
+        link?.link_context?.link_title ??
+        (typeof link?.text === "string" ? link.text : undefined) ??
+        "";
     } else {
       let videoUrl = "";
       let imgUrl = "";
 
       const searchMedia = (obj: unknown) => {
-        if (!obj || typeof obj !== "object") return;
-        if (videoUrl && imgUrl) return;
+        if (!obj || typeof obj !== "object" || (videoUrl && imgUrl)) return;
 
         const o = obj as Record<string, unknown>;
 
@@ -103,7 +105,7 @@ export const extractItem = (item: unknown, peerIds: string[]): ExtractedMedia | 
         }
 
         if (!imgUrl) {
-          const iv2 = o.image_versions2 as { candidates?: Array<{ url: string }> } | undefined;
+          const iv2 = o.image_versions2 as { candidates?: { url: string }[] } | undefined;
           if (iv2?.candidates && iv2.candidates.length > 0) {
             imgUrl = iv2.candidates[0].url;
           } else if (typeof o.thumbnail_url === "string") {
@@ -142,11 +144,8 @@ export const extractItem = (item: unknown, peerIds: string[]): ExtractedMedia | 
       }
     }
 
-    if (extracted.url) {
-      return extracted;
-    }
-    return null;
+    return extracted.url ? extracted : null;
   } catch {
     return null;
   }
-};
+}

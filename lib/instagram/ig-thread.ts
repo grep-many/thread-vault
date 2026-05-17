@@ -4,6 +4,12 @@ import { database } from "@/model";
 import Media from "@/model/media";
 import { Q } from "@nozbe/watermelondb";
 
+const THREAD_BASE = "https://www.instagram.com/api/v1/direct_v2/threads/";
+
+type RawUser = { pk?: string | number; id?: string | number };
+
+const EMPTY_COUNTS = { media: 0, reel: 0, link: 0, skipped: 0 };
+
 export async function IGThread({
   sessionId,
   threadId,
@@ -16,15 +22,14 @@ export async function IGThread({
   try {
     if (!sessionId || !threadId) throw new Error("Session ID and Thread ID are required");
 
-    let url = `https://www.instagram.com/api/v1/direct_v2/threads/${threadId}/`;
-    if (cursor) {
-      url += `?cursor=${cursor}`;
-    }
+    const url = cursor
+      ? `${THREAD_BASE}${threadId}/?cursor=${cursor}`
+      : `${THREAD_BASE}${threadId}/`;
 
     const data = (await igRequest(url, sessionId, {}, csrfToken, appId)) as {
       thread: {
         items: unknown[];
-        users: Array<{ pk?: string | number; id?: string | number }>;
+        users: RawUser[];
         has_older: boolean;
         oldest_cursor: string;
       };
@@ -32,31 +37,35 @@ export async function IGThread({
       message?: string;
     };
 
-    if (data.status === "fail") throw new Error(data.message || "Instagram API failed!");
+    if (data.status === "fail") throw new Error(data.message ?? "Instagram API failed!");
 
-    const items = data.thread.items || [];
-    const users = data.thread.users || [];
-    const peerIds = users.map((u) => u.pk?.toString() || u.id?.toString());
+    const items = data.thread.items ?? [];
+    const users = data.thread.users ?? [];
+    const peerIds = users.map((u) => (u.pk ?? u.id)?.toString() ?? "").filter(Boolean);
 
-    let counts = { media: 0, reel: 0, link: 0, skipped: 0 };
+    const counts = { ...EMPTY_COUNTS };
 
     if (inboxId && items.length > 0) {
-      const extractedItems = items
-        .map((item) => {
-          const ext = extractItem(item, peerIds as string[]);
-          if (!ext) counts.skipped++;
-          else if (ext.type === "media") counts.media++;
+      const extractedItems: ExtractedMedia[] = [];
+
+      for (const item of items) {
+        const ext = extractItem(item, peerIds);
+        if (!ext) {
+          counts.skipped++;
+        } else {
+          if (ext.type === "media") counts.media++;
           else if (ext.type === "reel") counts.reel++;
           else if (ext.type === "link") counts.link++;
-          return ext;
-        })
-        .filter((item): item is ExtractedMedia => item !== null);
+          extractedItems.push(ext);
+        }
+      }
 
       if (extractedItems.length > 0) {
         const existingMedia = await database
           .get<Media>("media")
           .query(Q.where("thread_id", threadId))
           .fetch();
+
         const existingItemIds = new Set(existingMedia.map((m) => m.itemId));
         const newItems = extractedItems.filter((item) => !existingItemIds.has(item.id));
 
@@ -73,9 +82,7 @@ export async function IGThread({
                 media.thumbnailUrl = item.preview;
                 media.sentAt = item.timestamp;
                 media.isSent = item.is_sent;
-                if (expiredAt) {
-                  media.expiredAt = expiredAt;
-                }
+                if (expiredAt) media.expiredAt = expiredAt;
               }),
             );
             await database.batch(...batchOps);
@@ -94,7 +101,10 @@ export async function IGThread({
       },
     };
   } catch (error: unknown) {
-    console.error("Thread proxy error:", error);
-    return { error: error instanceof Error ? error.message : "Internal Server Error", data: null };
+    console.error("[IGThread] error:", error);
+    return {
+      error: error instanceof Error ? error.message : "Internal Server Error",
+      data: null,
+    };
   }
 }

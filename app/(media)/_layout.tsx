@@ -1,16 +1,17 @@
 import { Stack } from "expo-router";
-import { StatusBar, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
+
+const SCREEN_OPTIONS = {
+  headerShown: false,
+  animation: "fade",
+} as const;
 
 export default function MediaLayout() {
   return (
-    <View className="flex-1 bg-zinc-950">
-      <StatusBar barStyle="light-content" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: "fade",
-        }}
-      />
+    <View className="flex-1 bg-[#000]">
+      <StatusBar style="light" />
+      <Stack screenOptions={SCREEN_OPTIONS} />
     </View>
   );
 }

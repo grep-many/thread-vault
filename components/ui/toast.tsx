@@ -1,3 +1,4 @@
+import { FontAwesome6 } from "@expo/vector-icons";
 import {
   createContext,
   memo,
@@ -9,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 import { Animated, Text, View } from "react-native";
-import { FontAwesome6 } from "@expo/vector-icons";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +41,22 @@ const COLORS: Record<ToastType, { bg: string; border: string; icon: string; text
   error: { bg: "#2d0d0d", border: "#dc2626", icon: "#ef4444", text: "#fecaca" },
   info: { bg: "#0c1a2e", border: "#3b82f6", icon: "#60a5fa", text: "#bfdbfe" },
 };
+
+// ─── Static style objects ─────────────────────────────────────────────────────
+
+const SHADOW_STYLE = {
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 8,
+} as const;
+
+// ─── Stable class strings ─────────────────────────────────────────────────────
+
+const CLS_TOAST_ROW = "flex-row items-center gap-3 rounded-2xl border px-4 py-3";
+const CLS_TOAST_TEXT = "flex-1 text-[13px] font-semibold tracking-tight";
+const CLS_CONTAINER = "absolute left-4 right-4 top-14 z-[9999] gap-2";
 
 // ─── Toast Item ───────────────────────────────────────────────────────────────
 
@@ -89,19 +105,19 @@ const ToastItem = memo(function ToastItem({ toast, onHide }: ToastItemProps) {
     return () => clearTimeout(timer);
   }, [toast.id, toast.duration, onHide, translateY, opacity]);
 
+  const animStyle = {
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
+    transform: [{ translateY }],
+    opacity,
+    ...SHADOW_STYLE,
+  };
+
   return (
-    <Animated.View
-      className="flex-row items-center gap-2.5 rounded-2xl border px-4 py-3 shadow-lg"
-      style={{
-        backgroundColor: colors.bg,
-        borderColor: colors.border,
-        transform: [{ translateY }],
-        opacity,
-      }}
-    >
+    <Animated.View className={CLS_TOAST_ROW} style={animStyle}>
       <FontAwesome6 name={ICON[toast.type]} size={16} color={colors.icon} />
       <Text
-        className="flex-1 text-[13px] font-semibold tracking-tight"
+        className={CLS_TOAST_TEXT}
         style={{ color: colors.text }}
         numberOfLines={2}
       >
@@ -112,7 +128,6 @@ const ToastItem = memo(function ToastItem({ toast, onHide }: ToastItemProps) {
 });
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
-
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -130,15 +145,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  // Memoize the context value to prevent all consumers from re-rendering
-  // when unrelated state in the provider changes.
   const contextValue = useRef<ToastContextValue>({ showToast });
   contextValue.current.showToast = showToast;
 
   return (
     <ToastContext.Provider value={contextValue.current}>
       {children}
-      <View className="absolute top-14 left-4 right-4 z-[9999] gap-2" pointerEvents="none">
+      <View className={CLS_CONTAINER} pointerEvents="none">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onHide={hideToast} />
         ))}
