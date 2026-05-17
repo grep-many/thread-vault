@@ -9,7 +9,7 @@ const SCREEN_OPTIONS = {
 
 export default function MediaLayout() {
   return (
-    <View className="flex-1 bg-[#000]">
+    <View className="flex-1 bg-dark-background">
       <StatusBar style="light" />
       <Stack screenOptions={SCREEN_OPTIONS} />
     </View>

@@ -2,10 +2,7 @@ import "@/global.css";
 import { useAuthGuard } from "@/hooks/auth/use-auth-guard";
 import { ToastProvider } from "@/components/ui/toast";
 import { SplashScreen, Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
-import { View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -16,20 +13,13 @@ const SCREEN_OPTIONS = {
   contentStyle: { backgroundColor: "transparent" },
 } as const;
 
-const SAFE_AREA_STYLE = { flex: 1 } as const;
-
 export default function RootLayout() {
   const theme = useColorScheme();
   useAuthGuard();
 
   return (
     <ToastProvider>
-      <View className="flex-1 bg-background dark:bg-dark-background">
-        <StatusBar style={theme === "light" ? "dark" : "light"} />
-        <SafeAreaView style={SAFE_AREA_STYLE}>
-          <Stack screenOptions={SCREEN_OPTIONS} />
-        </SafeAreaView>
-      </View>
+      <Stack screenOptions={SCREEN_OPTIONS} />
     </ToastProvider>
   );
 }
