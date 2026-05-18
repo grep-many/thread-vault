@@ -41,7 +41,14 @@ const CLS_INPUT_BASE = "flex-1 py-0 text-[16px] font-medium text-foreground dark
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const Input = forwardRef<TextInput, InputProps>(
-  ({ className = "", containerClassName = "", icon, ...props }, ref) => {
+  ({
+    className = "",
+    containerClassName = "",
+    icon,
+    onBlur,
+    onFocus,
+    ...props
+  }, ref) => {
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = useRef<TextInput>(null);
 
@@ -54,19 +61,17 @@ const Input = forwardRef<TextInput, InputProps>(
     const handleFocus = useCallback(
       (e: Parameters<NonNullable<TextInputProps["onFocus"]>>[0]) => {
         setIsFocused(true);
-        props.onFocus?.(e);
+        onFocus?.(e);
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [props.onFocus],
+      [onFocus],
     );
 
     const handleBlur = useCallback(
       (e: Parameters<NonNullable<TextInputProps["onBlur"]>>[0]) => {
         setIsFocused(false);
-        props.onBlur?.(e);
+        onBlur?.(e);
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [props.onBlur],
+      [onBlur],
     );
 
     const iconWithColor = useMemo(() => {

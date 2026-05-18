@@ -27,7 +27,7 @@ import { useShallow } from "zustand/react/shallow";
 
 // ─── Static constants ─────────────────────────────────────────────────────────
 
-const FILTER_OPTIONS: { key: "all" | "sent" | "received"; label: string; icon: string }[] = [
+const FILTER_OPTIONS: { key: FilterMode; label: string; icon: string }[] = [
   { key: "all", label: "All", icon: "border-all" },
   { key: "sent", label: "Sent", icon: "paper-plane" },
   { key: "received", label: "Received", icon: "inbox" },
@@ -133,11 +133,11 @@ const TabButtonItem = memo(function TabButtonItem({
 // ─── FilterOption ─────────────────────────────────────────────────────────────
 
 interface FilterOptionProps {
-  optionKey: "all" | "sent" | "received";
+  optionKey: FilterMode;
   label: string;
   icon: string;
-  filterMode: "all" | "sent" | "received";
-  setFilterMode: (mode: "all" | "sent" | "received") => void;
+  filterMode: FilterMode;
+  setFilterMode: (mode: FilterMode) => void;
   setFilterOpen: (open: boolean) => void;
 }
 
@@ -179,9 +179,9 @@ interface ListHeaderProps {
   totalItemsScanned: number;
   statsValues: readonly [number, number, number, number];
   activeTab: TabType;
-  allMediaCounts: { media: number; reel: number; link: number; interactions: number };
+  allMediaCounts: MediaStatsCounts;
   allSelected: boolean;
-  filterMode: "all" | "sent" | "received";
+  filterMode: FilterMode;
   filterOpen: boolean;
   handleBack: () => void;
   handleSyncPress: () => void;
@@ -189,7 +189,7 @@ interface ListHeaderProps {
   handleOpenFilter: () => void;
   handleCloseFilter: () => void;
   setActiveTab: (tab: TabType) => void;
-  setFilterMode: (mode: "all" | "sent" | "received") => void;
+  setFilterMode: (mode: FilterMode) => void;
   setFilterOpen: (open: boolean) => void;
 }
 
@@ -330,15 +330,13 @@ export default function ThreadDetail() {
     setActiveTabRaw(tab);
     setFilterOpen(false);
   }, []);
-  const [filterMode, setFilterMode] = useState<"all" | "sent" | "received">("all");
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [unsendModalVisible, setUnsendModalVisible] = useState(false);
   const [thread, setThread] = useState<Inbox | null>(null);
   const [displayedMedia, setDisplayedMedia] = useState<Media[]>([]);
-  const [allMediaCounts, setAllMediaCounts] = useState<{
-    media: number; reel: number; link: number; interactions: number;
-  }>(EMPTY_COUNTS);
+  const [allMediaCounts, setAllMediaCounts] = useState<MediaStatsCounts>(EMPTY_COUNTS);
 
   const {
     currentSyncingThreadId,

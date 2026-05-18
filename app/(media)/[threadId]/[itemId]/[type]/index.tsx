@@ -5,6 +5,7 @@ import Media from "@/model/media";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { Q } from "@nozbe/watermelondb";
 import { FlashList } from "@shopify/flash-list";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -14,171 +15,100 @@ import { Dimensions, type LayoutChangeEvent, Pressable, Text, View } from "react
 import { WebView } from "react-native-webview";
 
 const { height: INITIAL_HEIGHT, width: INITIAL_WIDTH } = Dimensions.get("window");
+const MEDIA_STYLE = { width: "100%", height: "100%" } as const;
+const DISABLED_FULLSCREEN_OPTIONS = { enable: false } as const;
 
-// ─── Static constants ─────────────────────────────────────────────────────────
+const keyExtractor = (item: Media) => item.itemId;
+const getItemType = (item: Media) => item.itemType || "unknown";
 
-const VIEWABILITY_CONFIG = { viewAreaCoveragePercentThreshold: 50 } as const;
-const MEDIA_PAGE_SIZE = 5;
-const INITIAL_MEDIA_SIZE = 6;
-
-const mediaKeyExtractor = (item: Media) => item.itemId;
-
-// ─── Stable class strings ─────────────────────────────────────────────────────
-
-const CLS_SLIDE_ROOT = "relative items-center justify-center bg-black";
-const CLS_MEDIA_FULL = "h-full w-full";
-const CLS_AVATAR_WRAP =
-  "absolute right-6 top-14 h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/60";
-const CLS_LINK_FALLBACK = "items-center justify-center bg-background dark:bg-dark-background";
-const CLS_LINK_FALLBACK_TEXT = "mt-3 text-sm text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_LOADING = "flex-1 bg-black";
-const CLS_ROOT = "flex-1 bg-black";
-const CLS_BACK_BTN = "absolute left-6 top-12 z-50 rounded-full bg-black/50 p-3";
-
-// ─── Video slide ──────────────────────────────────────────────────────────────
-
-interface VideoSlideProps {
+const VideoItem = memo(function VideoItem({
+  url,
+  isActive,
+}: {
   url: string;
-  thumbnailUrl?: string | null;
   isActive: boolean;
-}
-
-const VIDEO_STYLE = { width: "100%", height: "100%" } as const;
-const CLS_IMG_FALLBACK = "absolute inset-0 h-full w-full";
-const CLS_FALLBACK_WRAP = "items-center justify-center bg-black";
-const CLS_FALLBACK_TEXT = "mt-3 text-sm text-muted-foreground";
-
-const VideoSlide = memo(function VideoSlide({ url, thumbnailUrl, isActive }: VideoSlideProps) {
-  const player = useVideoPlayer(url, (p) => {
-    p.loop = true;
-    p.muted = !isActive;
+}) {
+  const player = useVideoPlayer(url, (videoPlayer) => {
+    videoPlayer.loop = true;
+    videoPlayer.muted = !isActive;
   });
 
   useEffect(() => {
     if (isActive) {
       player.muted = false;
       player.play();
-    } else {
-      player.muted = true;
-      player.pause();
+      return;
     }
+
+    player.muted = true;
+    player.pause();
   }, [isActive, player]);
 
   return (
-    <View style={VIDEO_STYLE}>
-      {!!thumbnailUrl && (
-        <Image
-          source={{ uri: thumbnailUrl }}
-          className={CLS_IMG_FALLBACK}
-          contentFit="contain"
-        />
-      )}
-      <VideoView
-        player={player}
-        style={VIDEO_STYLE}
-        contentFit="contain"
-        allowsFullscreen={false}
-        allowsPictureInPicture={false}
-        nativeControls={false}
-      />
-    </View>
+    <VideoView
+      player={player}
+      style={MEDIA_STYLE}
+      contentFit="contain"
+      nativeControls={false}
+      fullscreenOptions={DISABLED_FULLSCREEN_OPTIONS}
+      allowsPictureInPicture={false}
+    />
   );
 });
 
-// ─── Isolated media slide ─────────────────────────────────────────────────────
-
-interface MediaSlideProps {
-  item: Media;
-  isActive: boolean;
-  type: string;
-  threadPfpUrl: string | null;
-  layoutHeight: number;
-  layoutWidth: number;
-}
-
-const MediaSlide = memo(function MediaSlide({
+const MediaItem = memo(function MediaItem({
   item,
   isActive,
   type,
   threadPfpUrl,
-  layoutHeight,
-  layoutWidth,
-}: MediaSlideProps) {
-  const targetUrl = item.url || item.thumbnailUrl;
-
+  layout,
+}: {
+  item: Media;
+  isActive: boolean;
+  type: string;
+  threadPfpUrl?: string | null;
+  layout: { width: number; height: number };
+}) {
   const isAudio =
-    type === "media" &&
-    (item.itemType === "voice_media" ||
-      !!item.url?.includes(".m4a") ||
-      !!item.url?.includes("audio"));
-
+    item.itemType === "voice_media" ||
+    item.url?.includes(".m4a") ||
+    item.url?.includes("audio");
   const isVideo =
-    !isAudio &&
-    (item.itemType === "video" ||
-      item.itemType?.includes("video") ||
-      item.itemType === "raven_media" ||
-      !!item.url?.includes(".mp4") ||
-      !!item.url?.includes("video") ||
-      (type === "reel" && !item.url?.match(/\.(jpg|jpeg|png|webp|gif)$/i)));
+    !isAudio && (item.url?.includes(".mp4") || item.url?.includes("video"));
 
-  const containerStyle = useMemo(
-    () => [{ height: layoutHeight, width: layoutWidth }],
-    [layoutHeight, layoutWidth],
+  const itemStyle = useMemo(
+    () => ({ height: layout.height, width: layout.width }),
+    [layout.height, layout.width],
   );
 
-  const renderContent = () => {
-    if (!targetUrl) {
-      return (
-        <View style={VIDEO_STYLE} className={CLS_FALLBACK_WRAP}>
-          <FontAwesome6 name="image" size={36} color="#71717a" />
-          <Text className={CLS_FALLBACK_TEXT}>Media Unavailable</Text>
-        </View>
-      );
-    }
-
-    if (type === "link") {
-      return <LinkSlide url={targetUrl} layoutHeight={layoutHeight} layoutWidth={layoutWidth} />;
-    }
-
-    if (type === "reel" || type === "media") {
-      if (isAudio && type === "media") {
-        return <AudioPlayer url={targetUrl} isActive={isActive} />;
-      }
-      
-      if (isVideo) {
-        return <VideoSlide url={targetUrl} thumbnailUrl={item.thumbnailUrl} isActive={isActive} />;
-      }
-
-      const imageSource = item.url 
-        ? [{ uri: item.url }, ...(item.thumbnailUrl ? [{ uri: item.thumbnailUrl }] : [])]
-        : { uri: targetUrl };
-
-      return (
+  return (
+    <View
+      style={itemStyle}
+      className="relative items-center justify-center bg-black"
+    >
+      {isAudio ? (
+        <AudioPlayer url={item.url} isActive={isActive} />
+      ) : isVideo && item.url ? (
+        <VideoItem url={item.url} isActive={isActive} />
+      ) : type === "link" ? (
+        <LinkSlide url={item.url} layout={layout} />
+      ) : (
         <Image
-          source={imageSource}
-          className={CLS_MEDIA_FULL}
+          source={{ uri: item.url }}
+          style={MEDIA_STYLE}
           contentFit="contain"
         />
-      );
-    }
+      )}
 
-    return (
-      <View style={VIDEO_STYLE} className={CLS_FALLBACK_WRAP}>
-        <FontAwesome6 name="circle-exclamation" size={36} color="#71717a" />
-        <Text className={CLS_FALLBACK_TEXT}>Unsupported Media Type</Text>
-      </View>
-    );
-  };
-
-  return (
-    <View className={CLS_SLIDE_ROOT} style={containerStyle}>
-      {renderContent()}
-
-      <View className={CLS_AVATAR_WRAP}>
+      {/* Sender/receiver avatar */}
+      <View className="absolute top-14 right-6 h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/60">
         {item.isSent ? (
           <FontAwesome6 name="user" size={14} color="white" />
         ) : threadPfpUrl ? (
-          <Image source={{ uri: threadPfpUrl }} className={CLS_MEDIA_FULL} />
+          <Image
+            source={{ uri: threadPfpUrl }}
+            style={MEDIA_STYLE}
+          />
         ) : (
           <FontAwesome6 name="user" size={14} color="white" />
         )}
@@ -186,44 +116,6 @@ const MediaSlide = memo(function MediaSlide({
     </View>
   );
 });
-
-// ─── Link slide ───────────────────────────────────────────────────────────────
-
-interface LinkSlideProps {
-  url?: string | null;
-  layoutHeight: number;
-  layoutWidth: number;
-}
-
-const LinkSlide = memo(function LinkSlide({ url, layoutHeight, layoutWidth }: LinkSlideProps) {
-  const sizeStyle = useMemo(
-    () => ({ width: layoutWidth, height: layoutHeight }),
-    [layoutWidth, layoutHeight],
-  );
-
-  if (!url) {
-    return (
-      <View style={sizeStyle} className={CLS_LINK_FALLBACK}>
-        <FontAwesome6 name="link-slash" size={36} color="#71717a" />
-        <Text className={CLS_LINK_FALLBACK_TEXT}>No URL stored for this item</Text>
-      </View>
-    );
-  }
-
-  return (
-    <WebView
-      source={{ uri: url }}
-      style={sizeStyle}
-      javaScriptEnabled
-      domStorageEnabled
-      sharedCookiesEnabled
-      thirdPartyCookiesEnabled
-      scrollEnabled
-    />
-  );
-});
-
-// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function MediaViewer() {
   const { threadId, itemId, type } = useLocalSearchParams<{
@@ -233,6 +125,7 @@ export default function MediaViewer() {
   }>();
   const router = useRouter();
 
+  // Keep the screen awake while browsing media
   useKeepAwake();
 
   const [media, setMedia] = useState<Media[]>([]);
@@ -241,84 +134,97 @@ export default function MediaViewer() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [layout, setLayout] = useState({ width: INITIAL_WIDTH, height: INITIAL_HEIGHT });
-
   const mediaRef = useRef<Media[]>([]);
   mediaRef.current = media;
 
+  // Configure audio session: duck/pause on phone call, resume after
+  useEffect(() => {
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+      shouldDuckAndroid: true,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      playThroughEarpieceAndroid: false,
+    }).catch(() => { });
+  }, []);
+
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
-    setLayout({ width, height });
+    setLayout((prev) => (
+      prev.width === width && prev.height === height ? prev : { width, height }
+    ));
   }, []);
 
   useEffect(() => {
     if (!threadId) return;
-    database
-      .get<Inbox>("inbox")
-      .query(Q.where("thread_id", threadId))
-      .fetch()
-      .then((threads) => {
-        if (threads.length > 0) setThread(threads[0]);
-      });
+    const fetchThread = async () => {
+      const threads = await database
+        .get<Inbox>("inbox")
+        .query(Q.where("thread_id", threadId))
+        .fetch();
+      if (threads.length > 0) setThread(threads[0]);
+    };
+    fetchThread();
   }, [threadId]);
 
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
-      const first = viewableItems[0];
-      if (first?.index !== null && first?.index !== undefined) {
-        setCurrentIndex(first.index);
+      const nextIndex = viewableItems[0]?.index;
+      if (nextIndex !== null && nextIndex !== undefined) {
+        setCurrentIndex((prev) => (prev === nextIndex ? prev : nextIndex));
       }
     },
   ).current;
-
   const viewabilityConfigCallbackPairs = useRef([
-    { viewabilityConfig: VIEWABILITY_CONFIG, onViewableItemsChanged },
+    { viewabilityConfig, onViewableItemsChanged },
   ]).current;
 
   useEffect(() => {
     if (!threadId || !itemId || !type) return;
-
-    (async () => {
+    const loadInitial = async () => {
       try {
-        const targetItems = await database
+        const targetItem = await database
           .get<Media>("media")
           .query(Q.where("item_id", itemId))
           .fetch();
+        if (!targetItem.length) return;
+        const target = targetItem[0];
 
-        if (!targetItems.length) return;
-        const target = targetItems[0];
+        const newer = await database
+          .get<Media>("media")
+          .query(
+            Q.where("thread_id", threadId),
+            Q.where("type", type),
+            Q.where("sent_at", Q.gt(target.sentAt)),
+            Q.sortBy("sent_at", Q.asc),
+            Q.take(5),
+          )
+          .fetch();
 
-        const [newer, olderAndTarget] = await Promise.all([
-          database
-            .get<Media>("media")
-            .query(
-              Q.where("thread_id", threadId),
-              Q.where("type", type),
-              Q.where("sent_at", Q.gt(target.sentAt)),
-              Q.sortBy("sent_at", Q.asc),
-              Q.take(MEDIA_PAGE_SIZE),
-            )
-            .fetch(),
-          database
-            .get<Media>("media")
-            .query(
-              Q.where("thread_id", threadId),
-              Q.where("type", type),
-              Q.where("sent_at", Q.lte(target.sentAt)),
-              Q.sortBy("sent_at", Q.desc),
-              Q.take(INITIAL_MEDIA_SIZE),
-            )
-            .fetch(),
-        ]);
+        const olderAndTarget = await database
+          .get<Media>("media")
+          .query(
+            Q.where("thread_id", threadId),
+            Q.where("type", type),
+            Q.where("sent_at", Q.lte(target.sentAt)),
+            Q.sortBy("sent_at", Q.desc),
+            Q.take(6),
+          )
+          .fetch();
 
         const combined = [...newer.reverse(), ...olderAndTarget];
         setMedia(combined);
-        setInitialIndex(combined.findIndex((m) => m.itemId === itemId));
-      } catch (err) {
-        console.error("[MediaViewer] Error loading media segments:", err);
+        const targetIndex = combined.findIndex((m) => m.itemId === itemId);
+        setInitialIndex(targetIndex);
+        setCurrentIndex(targetIndex);
+      } catch {
       } finally {
         setLoading(false);
       }
-    })();
+    };
+    loadInitial();
   }, [threadId, itemId, type]);
 
   const loadMoreAfter = useCallback(async () => {
@@ -332,7 +238,7 @@ export default function MediaViewer() {
         Q.where("type", type),
         Q.where("sent_at", Q.lt(lastItem.sentAt)),
         Q.sortBy("sent_at", Q.desc),
-        Q.take(MEDIA_PAGE_SIZE),
+        Q.take(5),
       )
       .fetch();
     if (older.length > 0) {
@@ -351,7 +257,7 @@ export default function MediaViewer() {
         Q.where("type", type),
         Q.where("sent_at", Q.gt(firstItem.sentAt)),
         Q.sortBy("sent_at", Q.asc),
-        Q.take(MEDIA_PAGE_SIZE),
+        Q.take(5),
       )
       .fetch();
     if (newer.length > 0) {
@@ -359,11 +265,15 @@ export default function MediaViewer() {
     }
   }, [threadId, type]);
 
-  const handleBack = useCallback(() => router.back(), [router]);
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
 
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number } } }) => {
-      if (e.nativeEvent.contentOffset.y <= 0) loadMoreBefore();
+      if (e.nativeEvent.contentOffset.y <= 0) {
+        loadMoreBefore();
+      }
     },
     [loadMoreBefore],
   );
@@ -372,32 +282,33 @@ export default function MediaViewer() {
 
   const renderItem = useCallback(
     ({ item, index }: { item: Media; index: number }) => (
-      <MediaSlide
+      <MediaItem
         item={item}
         isActive={currentIndex === index}
         type={type}
         threadPfpUrl={threadPfpUrl}
-        layoutHeight={layout.height}
-        layoutWidth={layout.width}
+        layout={layout}
       />
     ),
-    [currentIndex, type, threadPfpUrl, layout.height, layout.width],
+    [currentIndex, layout, threadPfpUrl, type],
   );
 
   if (loading || initialIndex === -1) {
-    return <View className={CLS_LOADING} />;
+    return <View className="flex-1 bg-black" />;
   }
 
   return (
-    <View className={CLS_ROOT} onLayout={onLayout}>
-      <Pressable onPress={handleBack} className={CLS_BACK_BTN}>
+    <View className="flex-1 bg-black" onLayout={onLayout}>
+      <Pressable
+        onPress={handleBack}
+        className="absolute top-12 left-6 z-50 rounded-full bg-black/50 p-3 shadow-md backdrop-blur-md"
+      >
         <FontAwesome6 name="chevron-left" size={18} color="white" />
       </Pressable>
 
       <FlashList
         data={media}
-        keyExtractor={mediaKeyExtractor}
-        renderItem={renderItem}
+        keyExtractor={keyExtractor}
         initialScrollIndex={initialIndex}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -405,13 +316,50 @@ export default function MediaViewer() {
         onEndReachedThreshold={0.5}
         onScroll={handleScroll}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
-        estimatedItemSize={INITIAL_HEIGHT}
+        renderItem={renderItem}
+        estimatedItemSize={layout.height}
+        getItemType={getItemType}
         removeClippedSubviews
-        windowSize={3}
-        initialNumToRender={INITIAL_MEDIA_SIZE}
-        maxToRenderPerBatch={MEDIA_PAGE_SIZE}
-        updateCellsBatchingPeriod={50}
       />
     </View>
   );
 }
+
+// ─── In-app link browser slide ────────────────────────────────────────────────
+
+const LinkSlide = memo(function LinkSlide({
+  url,
+  layout,
+}: {
+  url?: string | null;
+  layout: { width: number; height: number };
+}) {
+  const sizeStyle = useMemo(
+    () => ({ width: layout.width, height: layout.height }),
+    [layout.height, layout.width],
+  );
+
+  if (!url) {
+    return (
+      <View
+        style={sizeStyle}
+        className="items-center justify-center bg-zinc-950"
+      >
+        <FontAwesome6 name="link-slash" size={36} color="#71717a" />
+        <Text className="mt-3 text-sm text-zinc-500">No URL stored for this item</Text>
+      </View>
+    );
+  }
+
+  return (
+    <WebView
+      source={{ uri: url }}
+      style={sizeStyle}
+      javaScriptEnabled
+      domStorageEnabled
+      sharedCookiesEnabled
+      thirdPartyCookiesEnabled
+      scrollEnabled
+    />
+  );
+});

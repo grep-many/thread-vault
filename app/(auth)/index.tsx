@@ -78,8 +78,7 @@ export default function LoginScreen() {
           }
           router.replace("/inbox");
         }
-      } catch (e) {
-        console.error("[LoginScreen] Session validation error:", e);
+      } catch {
       } finally {
         setIsLoading(false);
       }

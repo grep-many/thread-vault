@@ -101,7 +101,6 @@ export async function IGThread({
       },
     };
   } catch (error: unknown) {
-    console.error("[IGThread] error:", error);
     return {
       error: error instanceof Error ? error.message : "Internal Server Error",
       data: null,

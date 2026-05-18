@@ -1,7 +1,11 @@
-import type { PressableProps } from "react-native";
+import type React from "react";
+import type Media from "@/model/media";
 
 declare global {
-  // ─── UI Component Props ────────────────────────────────────────────────────
+  type MediaType = "media" | "reel" | "link";
+  type FilterMode = "all" | "sent" | "received";
+  type ToastType = "success" | "error" | "info";
+  type MediaStatsCounts = Record<MediaType, number> & { interactions: number };
 
   interface DialogProps {
     isOpen: boolean;
@@ -12,19 +16,17 @@ declare global {
     fullScreen?: boolean;
   }
 
-  // Note: ButtonProps is also declared locally in button.tsx — global kept for
-  // cross-file usage without re-importing.
-  interface ButtonProps extends PressableProps {
+  interface ButtonProps {
     isLoading?: boolean;
     variant?: "primary" | "secondary" | "gradient";
+    disabled?: boolean;
+    onPress?: () => void;
     className?: string;
     children?: React.ReactNode;
   }
 
-  // ─── Instagram API Types ───────────────────────────────────────────────────
-
   interface ExtractedMedia {
-    type: "media" | "reel" | "link";
+    type: MediaType;
     item_type: string;
     content_type: "photo" | "video" | "audio" | "url";
     url: string;
@@ -47,21 +49,17 @@ declare global {
     expiredAt?: number;
   }
 
-  // ─── Media Grid ────────────────────────────────────────────────────────────
-
-  type TabType = "media" | "reel" | "link";
+  type TabType = MediaType;
 
   type MediaGridItemProps = {
-    item: import("@/model/media").default;
+    item: Media;
     isSelected: boolean;
     isSelectMode: boolean;
     profileImageUrl?: string | null;
-    onOpen: (item: import("@/model/media").default) => void;
+    onOpen: (item: Media) => void;
     onToggleSelection: (id: string) => void;
     onLongPress: (id: string) => void;
   };
-
-  // ─── Unsend Types ──────────────────────────────────────────────────────────
 
   interface UnsendJobInput {
     itemId: string;
@@ -80,10 +78,6 @@ declare global {
     failureCount: number;
     currentItemId: string | null;
   }
-
-  // ─── Toast ────────────────────────────────────────────────────────────────
-
-  type ToastType = "success" | "error" | "info";
 
   interface ToastMessage {
     id: string;

@@ -36,8 +36,7 @@ export async function validateSession(
     });
 
     return { isValid: false, hasExistingData };
-  } catch (e) {
-    console.error("[validateSession] Unexpected error:", e);
+  } catch {
     return { isValid: false, hasExistingData: false };
   }
 }

@@ -1,7 +1,6 @@
 import { igRequest } from "@/lib/instagram/ig";
 import { database } from "@/model";
 import Inbox from "@/model/inbox";
-import { Q } from "@nozbe/watermelondb";
 
 interface IGInboxParams {
   sessionId: string;
@@ -84,7 +83,6 @@ export async function IGInbox({
       },
     };
   } catch (error: unknown) {
-    console.error("[IGInbox] error:", error);
     return {
       error: error instanceof Error ? error.message : "Internal Server Error",
       data: null,

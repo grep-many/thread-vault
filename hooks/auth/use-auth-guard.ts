@@ -13,7 +13,6 @@ export function useAuthGuard() {
 
   const init = useSession(selectInit);
 
-  // Stable ref so the Alert callback never captures a stale syncInbox
   const syncInboxRef = useRef(useSync.getState().syncInbox);
 
   useEffect(() => {
@@ -69,8 +68,6 @@ export function useAuthGuard() {
     return () => {
       cancelled = true;
     };
-  // `init` is a stable Zustand action — deps array intentionally minimal
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [init]);
 
   return { isReady };

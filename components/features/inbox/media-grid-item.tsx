@@ -3,16 +3,6 @@ import { FontAwesome6 } from "@expo/vector-icons";
 import { memo, useCallback } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 
-interface MediaGridItemProps {
-  item: Media;
-  isSelected: boolean;
-  isSelectMode: boolean;
-  profileImageUrl: string | null;
-  onOpen: (item: Media) => void;
-  onToggleSelection: (id: string) => void;
-  onLongPress: (id: string) => void;
-}
-
 function isAudioItem(item: Media): boolean {
   return (
     item.itemType === "voice_media" ||

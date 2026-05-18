@@ -15,15 +15,6 @@ const CLS_SECONDARY =
 const CLS_DISABLED = " opacity-50 active:opacity-50";
 const CLS_ROW = "flex-row items-center justify-center gap-3 z-10";
 
-export interface ButtonProps {
-  variant?: "gradient" | "primary" | "secondary";
-  isLoading?: boolean;
-  disabled?: boolean;
-  onPress?: () => void;
-  children?: React.ReactNode;
-  className?: string;
-}
-
 export const Button = memo(function Button({
   variant = "primary",
   isLoading,

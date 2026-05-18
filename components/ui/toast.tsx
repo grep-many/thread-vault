@@ -11,22 +11,9 @@ import {
 } from "react";
 import { Animated, Text, View } from "react-native";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type ToastType = "success" | "error" | "info";
-
-export interface ToastMessage {
-  id: string;
-  message: string;
-  type: ToastType;
-  duration?: number;
-}
-
 interface ToastContextValue {
   showToast: (message: string, type?: ToastType, duration?: number) => void;
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 

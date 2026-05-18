@@ -95,8 +95,7 @@ export const InstaLoginModal = memo(function InstaLoginModal({
         );
         onClose();
       }
-    } catch (error: unknown) {
-      console.error("[IG-AUTH] Cookie Error:", error);
+    } catch {
     }
   }, [clearPolling, onClose, onSessionExtracted]);
 
@@ -135,9 +134,7 @@ export const InstaLoginModal = memo(function InstaLoginModal({
       if (data.type === "IG_APP_ID" && data.appId) {
         appIdRef.current = data.appId;
       }
-    } catch {
-      // silent
-    }
+    } catch {}
   }, []);
 
   return (

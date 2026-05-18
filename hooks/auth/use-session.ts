@@ -57,8 +57,7 @@ export const useSession = create<SessionState>((set) => ({
           );
         });
       }
-    } catch (err) {
-      console.error("[useSession] Cleanup error:", err);
+    } catch {
     }
 
     return { removedMedia, removedThreads };
@@ -68,7 +67,7 @@ export const useSession = create<SessionState>((set) => ({
     const ops: Promise<void>[] = [SecureStore.setItemAsync("sid", id)];
     if (csrf) ops.push(SecureStore.setItemAsync("csrfToken", csrf));
     if (app_id) ops.push(SecureStore.setItemAsync("appId", app_id));
-    Promise.all(ops).catch((e) => console.error("[useSession] setSession store error:", e));
+    Promise.all(ops).catch(() => {});
     set({ sessionId: id, csrfToken: csrf ?? null, appId: app_id ?? null });
   },
 

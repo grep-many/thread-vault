@@ -116,8 +116,7 @@ async function processQueue(get: () => UnsendQueueState, set: SetFn) {
               await database.batch(...items.map((item) => item.prepareDestroyPermanently()));
             }
           });
-        } catch (dbErr) {
-          console.error("[UnsendQueue] DB cleanup error:", dbErr);
+        } catch {
         }
 
         set((state) => ({

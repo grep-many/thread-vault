@@ -99,10 +99,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
           appId: appId ?? undefined,
         });
 
-        if (res.error) {
-          console.error("[syncSingleThread] Error:", res.error);
-          break;
-        }
+        if (res.error) break;
 
         const itemsScanned = res.data?.items?.length ?? 0;
         const counts = res.data?.counts ?? { media: 0, reel: 0, link: 0 };
@@ -117,8 +114,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
       if (!get().isPaused) {
         set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Thread sync complete" });
       }
-    } catch (e) {
-      console.error("[syncSingleThread] Exception:", e);
+    } catch {
       set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Error syncing thread" });
     }
   },
@@ -173,8 +169,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
           ? { progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null }
           : { progressStatus: "Inbox sync complete", isSyncing: false, currentSyncingThreadId: null },
       );
-    } catch (e) {
-      console.error("[syncInbox] Exception:", e);
+    } catch {
       set({ isSyncing: false, progressStatus: "Error during inbox sync", currentSyncingThreadId: null });
     }
   },
@@ -238,10 +233,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
             appId: appId ?? undefined,
           });
 
-          if (res.error) {
-            console.error("[syncThreadItems] Thread error:", res.error);
-            break;
-          }
+          if (res.error) break;
 
           const itemsScanned = res.data?.items?.length ?? 0;
           const counts = res.data?.counts ?? { media: 0, reel: 0, link: 0 };
@@ -259,8 +251,7 @@ export const useSync = create<SyncEngineState>((set, get) => ({
           ? { progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null }
           : { progressStatus: "Sync complete", isSyncing: false, currentSyncingThreadId: null },
       );
-    } catch (e) {
-      console.error("[syncThreadItems] Exception:", e);
+    } catch {
       set({ isSyncing: false, progressStatus: "Error during thread items sync", currentSyncingThreadId: null });
     }
   },

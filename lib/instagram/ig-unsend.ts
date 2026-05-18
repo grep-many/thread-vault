@@ -45,7 +45,6 @@ export async function IGUnsendItem({
     return { success: true };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
-    console.error(`[IGUnsend] Failed to unsend item ${itemId}:`, msg);
     return { success: false, error: msg };
   }
 }
