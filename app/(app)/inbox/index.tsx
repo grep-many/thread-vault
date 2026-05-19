@@ -29,10 +29,9 @@ const CLS_ROOT = "flex-1 bg-background dark:bg-dark-background";
 const CLS_HEADER = "z-50 px-5 pt-10 pb-4";
 const CLS_TITLE_ROW = "z-50 mb-6 flex-row items-center justify-between";
 const CLS_TITLE_LEFT = "flex-row items-center";
-const CLS_TITLE_TEXT =
-  "mr-3 text-3xl font-bold text-foreground dark:text-dark-foreground";
-const CLS_SYNC_BTN = "rounded-full bg-muted p-2 dark:bg-dark-muted";
-const CLS_USER_BTN = "rounded-full bg-muted p-2 dark:bg-dark-muted";
+const CLS_TITLE_TEXT = "mr-3 text-3xl font-bold text-foreground dark:text-dark-foreground";
+const CLS_SYNC_BTN = "w-8 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted";
+const CLS_USER_BTN = "w-10 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted";
 const CLS_DROPDOWN_WRAP =
   "absolute top-24 right-5 z-[100] w-48 rounded-xl border border-border bg-card p-2 shadow-xl dark:border-dark-border dark:bg-dark-card";
 const CLS_DROPDOWN_ITEM =
@@ -40,8 +39,7 @@ const CLS_DROPDOWN_ITEM =
 const CLS_DROPDOWN_DIVIDER = "my-1 h-px bg-border dark:bg-dark-border";
 const CLS_DROPDOWN_LOGOUT =
   "flex-row items-center rounded-lg p-3 active:bg-red-50 dark:active:bg-red-900/20";
-const CLS_DROPDOWN_TEXT =
-  "ml-3 font-medium text-foreground dark:text-dark-foreground";
+const CLS_DROPDOWN_TEXT = "ml-3 font-medium text-foreground dark:text-dark-foreground";
 const CLS_BANNER = "mb-4";
 const CLS_BANNER_STATUS =
   "mb-2 text-xs font-semibold text-muted-foreground dark:text-dark-muted-foreground";
@@ -55,14 +53,10 @@ const CLS_SKELETON_ROW =
 const CLS_SKELETON_LEFT = "flex-1 flex-row items-center";
 const CLS_SKELETON_AVATAR = "h-12 w-12 animate-pulse rounded-full bg-muted dark:bg-dark-muted";
 const CLS_SKELETON_LINES = "ml-3 flex-1 gap-2";
-const CLS_SKELETON_LINE1 =
-  "h-4 w-32 animate-pulse rounded-md bg-muted dark:bg-dark-muted";
-const CLS_SKELETON_LINE2 =
-  "h-3 w-20 animate-pulse rounded-md bg-muted dark:bg-dark-muted";
-const CLS_SKELETON_BTN =
-  "h-8 w-8 animate-pulse rounded-full bg-muted dark:bg-dark-muted";
-const CLS_EMPTY =
-  "flex-1 items-center justify-center p-6 opacity-50";
+const CLS_SKELETON_LINE1 = "h-4 w-32 animate-pulse rounded-md bg-muted dark:bg-dark-muted";
+const CLS_SKELETON_LINE2 = "h-3 w-20 animate-pulse rounded-md bg-muted dark:bg-dark-muted";
+const CLS_SKELETON_BTN = "h-8 w-8 animate-pulse rounded-full bg-muted dark:bg-dark-muted";
+const CLS_EMPTY = "flex-1 items-center justify-center p-6 opacity-50";
 const CLS_EMPTY_TEXT =
   "mt-4 text-center font-medium text-muted-foreground dark:text-dark-muted-foreground";
 
@@ -109,7 +103,7 @@ export default function Inbox() {
       syncThreadItems: s.syncThreadItems,
       pauseSync: s.pauseSync,
       syncSingleThread: s.syncSingleThread,
-    }))
+    })),
   );
 
   const handleLogout = useLogout();
@@ -139,7 +133,10 @@ export default function Inbox() {
           if (prev.size === next.size) {
             let same = true;
             for (const id of next) {
-              if (!prev.has(id)) { same = false; break; }
+              if (!prev.has(id)) {
+                same = false;
+                break;
+              }
             }
             if (same) return prev;
           }
@@ -257,20 +254,11 @@ export default function Inbox() {
             </Pressable>
 
             {dropdownOpen && (
-              <Modal
-                visible
-                transparent
-                animationType="none"
-                onRequestClose={handleDropdownClose}
-              >
+              <Modal visible transparent animationType="none" onRequestClose={handleDropdownClose}>
                 <Pressable className="flex-1" onPress={handleDropdownClose}>
                   <View className={CLS_DROPDOWN_WRAP}>
                     <Pressable onPress={handleSync} className={CLS_DROPDOWN_ITEM}>
-                      <FontAwesome6
-                        name={isSyncing ? "pause" : "play"}
-                        size={14}
-                        color="#71717a"
-                      />
+                      <FontAwesome6 name={isSyncing ? "pause" : "play"} size={14} color="#71717a" />
                       <Text className={CLS_DROPDOWN_TEXT}>
                         {isSyncing ? "Pause Sync" : "Start Inbox Sync"}
                       </Text>
@@ -284,11 +272,7 @@ export default function Inbox() {
                     <View className={CLS_DROPDOWN_DIVIDER} />
 
                     <Pressable onPress={handleLogoutPress} className={CLS_DROPDOWN_LOGOUT}>
-                      <FontAwesome6
-                        name="arrow-right-from-bracket"
-                        size={14}
-                        color="#ef4444"
-                      />
+                      <FontAwesome6 name="arrow-right-from-bracket" size={14} color="#ef4444" />
                       <Text className="ml-3 font-medium text-red-500">Logout</Text>
                     </Pressable>
                   </View>

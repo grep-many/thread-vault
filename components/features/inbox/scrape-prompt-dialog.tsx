@@ -75,43 +75,40 @@ export const ScrapePromptDialog = memo(function ScrapePromptDialog({
   chats,
   onConfirm,
 }: ScrapePromptDialogProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedIds(new Set(chats.map((c) => c.threadId)));
+      setSelectedThreadIds([]);
     }
-  }, [isOpen, chats]);
+  }, [isOpen]);
 
-  const allSelected = selectedIds.size === chats.length;
-  const selectedCount = selectedIds.size;
+  const allSelected = chats.length > 0 && selectedThreadIds.length === chats.length;
+  const selectedCount = selectedThreadIds.length;
 
   const toggleSelectAll = useCallback(() => {
     if (allSelected) {
-      setSelectedIds(new Set());
+      setSelectedThreadIds([]);
     } else {
-      setSelectedIds(new Set(chats.map((c) => c.threadId)));
+      setSelectedThreadIds(chats.map((c) => c.threadId));
     }
   }, [allSelected, chats]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelectedThreadIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   }, []);
 
   const handleConfirm = useCallback(() => {
-    onConfirm(Array.from(selectedIds));
-  }, [onConfirm, selectedIds]);
+    onConfirm(selectedThreadIds);
+  }, [onConfirm, selectedThreadIds]);
 
   const renderItem = useCallback(
-    ({ item, extraData }: { item: InboxModel; extraData?: Set<string> }) => (
+    ({ item, extraData }: { item: InboxModel; extraData?: string[] }) => (
       <ThreadAvatar
         item={item}
-        isSelected={!!extraData?.has(item.threadId)}
+        isSelected={!!extraData?.includes(item.threadId)}
         onToggle={toggleSelect}
       />
     ),
@@ -134,7 +131,7 @@ export const ScrapePromptDialog = memo(function ScrapePromptDialog({
           keyExtractor={keyExtractor}
           numColumns={3}
           renderItem={renderItem}
-          extraData={selectedIds}
+          extraData={selectedThreadIds}
           removeClippedSubviews
           estimatedItemSize={96}
           windowSize={5}
@@ -147,7 +144,7 @@ export const ScrapePromptDialog = memo(function ScrapePromptDialog({
         <Button variant="secondary" onPress={onClose}>
           <Text className="font-bold text-foreground dark:text-dark-foreground">Cancel</Text>
         </Button>
-        <Button variant="gradient" onPress={handleConfirm}>
+        <Button variant="gradient" onPress={handleConfirm} disabled={selectedThreadIds.length === 0}>
           <Text className="font-bold text-white">Start Sync</Text>
         </Button>
       </View>

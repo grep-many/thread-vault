@@ -15,7 +15,7 @@ interface TabButtonProps {
 const CLS_ROOT = "flex-1";
 const CLS_PRESSABLE = "relative items-center justify-center py-2.5";
 const CLS_ACTIVE_BG =
-  "absolute inset-0 rounded-[12px] bg-white shadow-sm dark:bg-[#2a3942]";
+  "absolute inset-0 rounded-[12px] bg-white shadow-sm dark:bg-dark-muted";
 const CLS_CONTENT_ROW =
   "relative z-10 flex-row items-center justify-center gap-2 px-3";
 const CLS_LABEL_ACTIVE = "font-bold text-foreground dark:text-dark-foreground";

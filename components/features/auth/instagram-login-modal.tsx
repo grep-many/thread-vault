@@ -1,7 +1,7 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import CookieManager from "@react-native-cookies/cookies";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Modal, Platform, Pressable, View } from "react-native";
+import {  Modal, Platform, Pressable, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, type WebViewNavigation } from "react-native-webview";
 
@@ -178,9 +178,7 @@ export const InstaLoginModal = memo(function InstaLoginModal({
           </Pressable>
 
           {loading && (
-            <View className={CLS_LOADER_OVERLAY}>
-              <ActivityIndicator size="large" color="#ec4899" />
-            </View>
+            <View className={CLS_LOADER_OVERLAY}/>
           )}
         </SafeAreaView>
       </View>

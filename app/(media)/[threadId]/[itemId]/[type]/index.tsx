@@ -9,106 +9,156 @@ import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, type LayoutChangeEvent, Pressable, Text, View } from "react-native";
+import { createVideoPlayer, type VideoPlayer, VideoView } from "expo-video";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {  Dimensions, type LayoutChangeEvent, Pressable, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 const { height: INITIAL_HEIGHT, width: INITIAL_WIDTH } = Dimensions.get("window");
-const MEDIA_STYLE = { width: "100%", height: "100%" } as const;
-const DISABLED_FULLSCREEN_OPTIONS = { enable: false } as const;
+const FULL_SIZE = { width: "100%", height: "100%" } as const;
+const FULLSCREEN_OPTIONS = { enable: false } as const;
+const WEBVIEW_DARK_SCRIPT = `
+  document.documentElement.style.backgroundColor = "black";
+  document.body.style.backgroundColor = "black";
+  true;
+`;
+
+type MediaKind = "video" | "image" | "audio" | "link";
 
 const keyExtractor = (item: Media) => item.itemId;
-const getItemType = (item: Media) => item.itemType || "unknown";
 
-const VideoItem = memo(function VideoItem({
+function getMediaKind(item: Media): MediaKind {
+  if (item.type === "link") return "link";
+  if (
+    item.itemType === "voice_media" ||
+    item.url?.includes(".m4a") ||
+    item.url?.includes("audio")
+  ) {
+    return "audio";
+  }
+  if (item.url?.includes(".mp4") || item.url?.includes("video")) return "video";
+  return "image";
+}
+
+const VideoSlide = memo(function VideoSlide({
   url,
   isActive,
 }: {
   url: string;
   isActive: boolean;
 }) {
-  const player = useVideoPlayer(url, (videoPlayer) => {
-    videoPlayer.loop = true;
-    videoPlayer.muted = !isActive;
-  });
+  const playerRef = useRef<VideoPlayer | null>(null);
+
+  if (!playerRef.current) {
+    const player = createVideoPlayer({ uri: url });
+    player.loop = true;
+    player.muted = true;
+    player.pause();
+    playerRef.current = player;
+  }
+
+  const player = playerRef.current;
 
   useEffect(() => {
     if (isActive) {
       player.muted = false;
       player.play();
-      return;
+    } else {
+      player.muted = true;
+      player.pause();
     }
-
-    player.muted = true;
-    player.pause();
   }, [isActive, player]);
+
+  useEffect(() => {
+    return () => {
+      playerRef.current?.pause();
+      playerRef.current?.release();
+      playerRef.current = null;
+    };
+  }, []);
+
+  if (!player) return null;
 
   return (
     <VideoView
       player={player}
-      style={MEDIA_STYLE}
+      style={FULL_SIZE}
       contentFit="contain"
       nativeControls={false}
-      fullscreenOptions={DISABLED_FULLSCREEN_OPTIONS}
+      fullscreenOptions={FULLSCREEN_OPTIONS}
       allowsPictureInPicture={false}
     />
   );
 });
 
+function LinkSlide({ url, width, height }: { url?: string | null; width: number; height: number }) {
+  const [loading, setLoading] = useState(true);
+
+  if (!url) {
+    return (
+      <View style={{ width, height }} className="items-center justify-center bg-black">
+        <FontAwesome6 name="link-slash" size={36} color="#71717a" />
+        <Text className="mt-3 text-sm text-zinc-500">No URL stored for this item</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ width, height, backgroundColor: "black" }}>
+      <WebView
+        source={{ uri: url }}
+        style={{ width, height, backgroundColor: "black" }}
+        javaScriptEnabled
+        domStorageEnabled
+        sharedCookiesEnabled
+        thirdPartyCookiesEnabled
+        scrollEnabled
+        injectedJavaScript={WEBVIEW_DARK_SCRIPT}
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
+      />
+      {loading && (
+        <View className="absolute inset-0 items-center justify-center bg-black"/>
+      )}
+    </View>
+  );
+}
+
 const MediaItem = memo(function MediaItem({
   item,
   isActive,
-  type,
   threadPfpUrl,
-  layout,
+  width,
+  height,
 }: {
   item: Media;
   isActive: boolean;
-  type: string;
   threadPfpUrl?: string | null;
-  layout: { width: number; height: number };
+  width: number;
+  height: number;
 }) {
-  const isAudio =
-    item.itemType === "voice_media" ||
-    item.url?.includes(".m4a") ||
-    item.url?.includes("audio");
-  const isVideo =
-    !isAudio && (item.url?.includes(".mp4") || item.url?.includes("video"));
-
-  const itemStyle = useMemo(
-    () => ({ height: layout.height, width: layout.width }),
-    [layout.height, layout.width],
-  );
+  const kind = getMediaKind(item);
 
   return (
     <View
-      style={itemStyle}
+      style={{ width, height }}
       className="relative items-center justify-center bg-black"
     >
-      {isAudio ? (
+      {kind === "audio" ? (
         <AudioPlayer url={item.url} isActive={isActive} />
-      ) : isVideo && item.url ? (
-        <VideoItem url={item.url} isActive={isActive} />
-      ) : type === "link" ? (
-        <LinkSlide url={item.url} layout={layout} />
+      ) : kind === "video" && item.url ? (
+        <VideoSlide key={item.itemId} url={item.url} isActive={isActive} />
+      ) : kind === "link" ? (
+        <LinkSlide url={item.url} width={width} height={height} />
       ) : (
-        <Image
-          source={{ uri: item.url }}
-          style={MEDIA_STYLE}
-          contentFit="contain"
-        />
+        <Image source={{ uri: item.url }} style={FULL_SIZE} contentFit="contain" />
       )}
 
-      {/* Sender/receiver avatar */}
       <View className="absolute top-14 right-6 h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/60">
         {item.isSent ? (
           <FontAwesome6 name="user" size={14} color="white" />
         ) : threadPfpUrl ? (
-          <Image
-            source={{ uri: threadPfpUrl }}
-            style={MEDIA_STYLE}
-          />
+          <Image source={{ uri: threadPfpUrl }} style={FULL_SIZE} />
         ) : (
           <FontAwesome6 name="user" size={14} color="white" />
         )}
@@ -125,7 +175,6 @@ export default function MediaViewer() {
   }>();
   const router = useRouter();
 
-  // Keep the screen awake while browsing media
   useKeepAwake();
 
   const [media, setMedia] = useState<Media[]>([]);
@@ -137,7 +186,6 @@ export default function MediaViewer() {
   const mediaRef = useRef<Media[]>([]);
   mediaRef.current = media;
 
-  // Configure audio session: duck/pause on phone call, resume after
   useEffect(() => {
     Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
@@ -146,7 +194,7 @@ export default function MediaViewer() {
       shouldDuckAndroid: true,
       interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
       playThroughEarpieceAndroid: false,
-    }).catch(() => { });
+    }).catch(() => {});
   }, []);
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
@@ -215,8 +263,8 @@ export default function MediaViewer() {
           .fetch();
 
         const combined = [...newer.reverse(), ...olderAndTarget];
-        setMedia(combined);
         const targetIndex = combined.findIndex((m) => m.itemId === itemId);
+        setMedia(combined);
         setInitialIndex(targetIndex);
         setCurrentIndex(targetIndex);
       } catch {
@@ -265,32 +313,17 @@ export default function MediaViewer() {
     }
   }, [threadId, type]);
 
-  const handleBack = useCallback(() => {
-    router.back();
-  }, [router]);
-
-  const handleScroll = useCallback(
-    (e: { nativeEvent: { contentOffset: { y: number } } }) => {
-      if (e.nativeEvent.contentOffset.y <= 0) {
-        loadMoreBefore();
-      }
-    },
-    [loadMoreBefore],
-  );
-
-  const threadPfpUrl = thread?.pfpUrl ?? null;
-
   const renderItem = useCallback(
     ({ item, index }: { item: Media; index: number }) => (
       <MediaItem
         item={item}
         isActive={currentIndex === index}
-        type={type}
-        threadPfpUrl={threadPfpUrl}
-        layout={layout}
+        threadPfpUrl={thread?.pfpUrl}
+        width={layout.width}
+        height={layout.height}
       />
     ),
-    [currentIndex, layout, threadPfpUrl, type],
+    [currentIndex, layout.height, layout.width, thread?.pfpUrl],
   );
 
   if (loading || initialIndex === -1) {
@@ -300,7 +333,7 @@ export default function MediaViewer() {
   return (
     <View className="flex-1 bg-black" onLayout={onLayout}>
       <Pressable
-        onPress={handleBack}
+        onPress={() => router.back()}
         className="absolute top-12 left-6 z-50 rounded-full bg-black/50 p-3 shadow-md backdrop-blur-md"
       >
         <FontAwesome6 name="chevron-left" size={18} color="white" />
@@ -314,52 +347,18 @@ export default function MediaViewer() {
         showsVerticalScrollIndicator={false}
         onEndReached={loadMoreAfter}
         onEndReachedThreshold={0.5}
-        onScroll={handleScroll}
+        onScroll={(e) => {
+          if (e.nativeEvent.contentOffset.y <= 0) {
+            loadMoreBefore();
+          }
+        }}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
         renderItem={renderItem}
+        extraData={currentIndex}
         estimatedItemSize={layout.height}
-        getItemType={getItemType}
+        getItemType={getMediaKind}
         removeClippedSubviews
       />
     </View>
   );
-}
-
-// ─── In-app link browser slide ────────────────────────────────────────────────
-
-const LinkSlide = memo(function LinkSlide({
-  url,
-  layout,
-}: {
-  url?: string | null;
-  layout: { width: number; height: number };
-}) {
-  const sizeStyle = useMemo(
-    () => ({ width: layout.width, height: layout.height }),
-    [layout.height, layout.width],
-  );
-
-  if (!url) {
-    return (
-      <View
-        style={sizeStyle}
-        className="items-center justify-center bg-zinc-950"
-      >
-        <FontAwesome6 name="link-slash" size={36} color="#71717a" />
-        <Text className="mt-3 text-sm text-zinc-500">No URL stored for this item</Text>
-      </View>
-    );
-  }
-
-  return (
-    <WebView
-      source={{ uri: url }}
-      style={sizeStyle}
-      javaScriptEnabled
-      domStorageEnabled
-      sharedCookiesEnabled
-      thirdPartyCookiesEnabled
-      scrollEnabled
-    />
-  );
-});
+} 

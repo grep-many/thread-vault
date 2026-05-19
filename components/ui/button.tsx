@@ -1,6 +1,7 @@
+import { FontAwesome6 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 const GRADIENT_PINK = ["#db2777", "#9333ea"] as const;
 const GRADIENT_BLUE = ["#2563eb", "#3b82f6"] as const;
@@ -52,7 +53,12 @@ export const Button = memo(function Button({
       )}
       <View className={CLS_ROW}>
         {isLoading ? (
-          <ActivityIndicator size="small" color={isSecondary ? "#71717a" : "white"} />
+          <FontAwesome6
+          name="spinner"
+          size={16}
+          color={isSecondary ? "#71717a" : "white"}
+          className="animate-spin"
+        />
         ) : (
           children
         )}

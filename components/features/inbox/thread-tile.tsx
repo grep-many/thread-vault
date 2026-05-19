@@ -24,7 +24,7 @@ const CLS_AVATAR_IMG = "h-full w-full";
 const CLS_SYNC_BADGE =
   "absolute right-0 bottom-0 rounded-full bg-background p-0.5 shadow-sm dark:bg-dark-background";
 const CLS_TEXT_WRAP = "ml-3 flex-1";
-const CLS_PRIMARY_TEXT = "text-base font-semibold text-primary";
+const CLS_PRIMARY_TEXT = "text-base font-semibold text-dark dark:text-white";
 const CLS_SECONDARY_TEXT = "text-xs text-muted-foreground dark:text-dark-muted-foreground";
 const CLS_SYNC_BTN =
   "ml-4 h-8 w-8 items-center justify-center rounded-full bg-muted active:opacity-70 dark:bg-dark-muted";

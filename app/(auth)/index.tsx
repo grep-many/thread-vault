@@ -38,7 +38,7 @@ const CLS_APP_TITLE =
 const CLS_APP_SUBTITLE =
   "text-muted-foreground dark:text-dark-muted-foreground";
 const CLS_TABS_WRAP =
-  "mb-8 flex-row rounded-2xl bg-muted/50 p-1.5 dark:bg-[#1c2a33]";
+  "mb-8 flex-row rounded-2xl bg-muted/50 p-1.5 dark:bg-dark-muted/30";
 const CLS_CARD =
   "overflow-hidden rounded-4xl border border-border bg-card p-8 shadow-xl dark:border-dark-border dark:bg-dark-card";
 const CLS_INSTA_TAB = "gap-6";
