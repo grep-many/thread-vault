@@ -15,14 +15,7 @@ import * as Haptics from "expo-haptics";
 import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  BackHandler,
-  Image,
-  Modal,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { BackHandler, Image, Pressable, Text, View } from "react-native";
 import { useShallow } from "zustand/react/shallow";
 
 // ─── Static constants ─────────────────────────────────────────────────────────
@@ -53,55 +46,6 @@ function getItemType(item: Media): string {
 }
 
 const mediaKeyExtractor = (item: Media) => item.itemId;
-
-// ─── Stable class strings ─────────────────────────────────────────────────────
-
-const CLS_ROOT = "flex-1 bg-background dark:bg-dark-background";
-
-// ListHeader classes
-const CLS_LH_ROOT = "bg-background dark:bg-dark-background";
-const CLS_LH_HERO = "relative items-center py-16";
-const CLS_LH_BACK =
-  "absolute top-12 left-6 z-50 size-10 items-center justify-center rounded-full bg-card/80 shadow-xl backdrop-blur-md dark:bg-dark-card/80";
-const CLS_LH_AVATAR_OUTER =
-  "h-32 w-32 items-center justify-center overflow-hidden rounded-[40px] border-4 border-background bg-muted shadow-2xl dark:border-dark-background dark:bg-dark-muted";
-const CLS_LH_AVATAR_IMG = "h-full w-full";
-const CLS_LH_SYNC_BTN =
-  "absolute -right-1 -bottom-1 size-8 items-center justify-center rounded-full bg-foreground dark:bg-dark-foreground";
-const CLS_LH_USERNAME =
-  "mt-5 text-2xl font-black tracking-tight text-foreground dark:text-dark-foreground";
-const CLS_LH_INTERACTIONS =
-  "mt-1 text-sm font-semibold text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_LH_STATS_ROW =
-  "mt-3 flex-row items-center gap-3 rounded-full bg-muted/50 px-3 py-1.5 dark:bg-dark-muted/50";
-const CLS_LH_STAT_TEXT =
-  "text-[10px] font-bold tracking-wider text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_LH_TABS_BAR =
-  "bg-background/95 px-6 py-4 backdrop-blur-sm dark:bg-dark-background/95";
-const CLS_LH_TABS_ROW = "flex-row items-center gap-2";
-const CLS_LH_TAB_WRAP =
-  "flex-1 flex-row rounded-2xl border border-border bg-muted/50 p-1.5 dark:border-dark-border dark:bg-dark-muted/50";
-
-const CLS_SEL_ALL_ACTIVE =
-  "h-10 w-10 items-center justify-center rounded-xl border border-primary/40 bg-primary/10";
-const CLS_SEL_ALL_IDLE =
-  "h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50";
-const CLS_FILTER_ACTIVE =
-  "h-10 w-10 items-center justify-center rounded-xl border border-primary/40 bg-primary/10";
-const CLS_FILTER_IDLE =
-  "h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50";
-
-const CLS_FILTER_DROPDOWN =
-  "absolute right-6 top-[220px] w-44 overflow-hidden rounded-2xl border border-border bg-card shadow-xl dark:border-dark-border dark:bg-dark-card";
-const CLS_FILTER_ITEM =
-  "flex-row items-center gap-3 px-4 py-3 active:bg-muted/50 dark:active:bg-dark-muted/50";
-const CLS_FILTER_LABEL_ACTIVE = "flex-1 text-sm font-semibold text-primary";
-const CLS_FILTER_LABEL_IDLE =
-  "flex-1 text-sm font-semibold text-foreground dark:text-dark-foreground";
-
-// Unsend bar
-const CLS_UNSEND_BAR = "absolute right-6 bottom-8 left-6 shadow-2xl";
-const CLS_UNSEND_TEXT = "ml-2 font-black text-white uppercase";
 
 // ─── TabButtonItem ─────────────────────────────────────────────────────────────
 
@@ -150,7 +94,9 @@ const FilterOption = memo(function FilterOption({
   setFilterOpen,
 }: FilterOptionProps) {
   const isActive = filterMode === optionKey;
-  const labelClass = isActive ? CLS_FILTER_LABEL_ACTIVE : CLS_FILTER_LABEL_IDLE;
+  const labelClass = isActive
+    ? "flex-1 text-sm font-semibold text-primary"
+    : "flex-1 text-sm font-semibold text-foreground dark:text-dark-foreground";
 
   const handlePress = useCallback(() => {
     setFilterMode(optionKey);
@@ -158,12 +104,11 @@ const FilterOption = memo(function FilterOption({
   }, [optionKey, setFilterMode, setFilterOpen]);
 
   return (
-    <Pressable onPress={handlePress} className={CLS_FILTER_ITEM}>
-      <FontAwesome6
-        name={icon}
-        size={13}
-        color={isActive ? "#ec4899" : "#71717a"}
-      />
+    <Pressable
+      onPress={handlePress}
+      className="active:bg-muted/50 dark:active:bg-dark-muted/50 flex-row items-center gap-3 px-4 py-3"
+    >
+      <FontAwesome6 name={icon} size={13} color={isActive ? "#ec4899" : "#71717a"} />
       <Text className={labelClass}>{label}</Text>
       {isActive && <FontAwesome6 name="check" size={11} color="#ec4899" />}
     </Pressable>
@@ -213,24 +158,32 @@ const ListHeader = memo(function ListHeader({
   setFilterMode,
   setFilterOpen,
 }: ListHeaderProps) {
-  const selAllClass = allSelected ? CLS_SEL_ALL_ACTIVE : CLS_SEL_ALL_IDLE;
-  const filterBtnClass = filterMode !== "all" ? CLS_FILTER_ACTIVE : CLS_FILTER_IDLE;
+  const selAllClass = allSelected
+    ? "h-10 w-10 items-center justify-center rounded-xl border border-primary/40 bg-primary/10"
+    : "h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50";
+  const filterBtnClass =
+    filterMode !== "all"
+      ? "h-10 w-10 items-center justify-center rounded-xl border border-primary/40 bg-primary/10"
+      : "h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50";
   const syncBtnColor = isScraping ? "#ec4899" : "#71717a";
   const syncAnimClass = isScraping ? "animate-spin" : "";
 
   return (
-    <View className={CLS_LH_ROOT}>
-      <View className={CLS_LH_HERO}>
-        <Pressable onPress={handleBack} className={CLS_LH_BACK}>
+    <View className="bg-background dark:bg-dark-background">
+      <View className="relative items-center py-16">
+        <Pressable
+          onPress={handleBack}
+          className="bg-card/80 dark:bg-dark-card/80 absolute top-12 left-6 z-50 size-10 items-center justify-center rounded-full shadow-xl backdrop-blur-md"
+        >
           <FontAwesome6 name="chevron-left" size={18} color="#71717a" />
         </Pressable>
 
         <View className="relative">
-          <View className={CLS_LH_AVATAR_OUTER}>
+          <View className="border-background bg-muted dark:border-dark-background dark:bg-dark-muted h-32 w-32 items-center justify-center overflow-hidden rounded-[40px] border-4 shadow-2xl">
             {profileImageUrl ? (
               <Image
                 source={{ uri: profileImageUrl }}
-                className={CLS_LH_AVATAR_IMG}
+                className="h-full w-full"
                 resizeMode="cover"
               />
             ) : (
@@ -238,27 +191,28 @@ const ListHeader = memo(function ListHeader({
             )}
           </View>
 
-          <Pressable onPress={handleSyncPress} className={CLS_LH_SYNC_BTN}>
-            <FontAwesome6
-              name="rotate"
-              size={14}
-              color={syncBtnColor}
-              className={syncAnimClass}
-            />
+          <Pressable
+            onPress={handleSyncPress}
+            className="bg-foreground dark:bg-dark-foreground absolute -right-1 -bottom-1 size-8 items-center justify-center rounded-full"
+          >
+            <FontAwesome6 name="rotate" size={14} color={syncBtnColor} className={syncAnimClass} />
           </Pressable>
         </View>
 
-        <Text className={CLS_LH_USERNAME}>
+        <Text className="text-foreground dark:text-dark-foreground mt-5 text-2xl font-black tracking-tight">
           {threadUsername ?? "Loading..."}
         </Text>
-        <Text className={CLS_LH_INTERACTIONS}>
+        <Text className="text-muted-foreground dark:text-dark-muted-foreground mt-1 text-sm font-semibold">
           Interactions: {allMediaCounts.interactions}
         </Text>
 
         {isScraping && totalItemsScanned > 0 && (
-          <View className={CLS_LH_STATS_ROW}>
+          <View className="bg-muted/50 dark:bg-dark-muted/50 mt-3 flex-row items-center gap-3 rounded-full px-3 py-1.5">
             {STATS_LABELS.map((label, i) => (
-              <Text key={label} className={CLS_LH_STAT_TEXT}>
+              <Text
+                key={label}
+                className="text-muted-foreground dark:text-dark-muted-foreground text-[10px] font-bold tracking-wider"
+              >
                 {label}: {statsValues[i]}
               </Text>
             ))}
@@ -266,9 +220,9 @@ const ListHeader = memo(function ListHeader({
         )}
       </View>
 
-      <View className={CLS_LH_TABS_BAR}>
-        <View className={CLS_LH_TABS_ROW}>
-          <View className={CLS_LH_TAB_WRAP}>
+      <View className="bg-background/95 dark:bg-dark-background/95 px-6 py-4 backdrop-blur-sm">
+        <View className="flex-row items-center gap-2">
+          <View className="border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50 flex-1 flex-row rounded-2xl border p-1.5">
             {TABS.map((tab) => (
               <TabButtonItem
                 key={tab}
@@ -299,7 +253,10 @@ const ListHeader = memo(function ListHeader({
       </View>
 
       {filterOpen && (
-        <View className={CLS_FILTER_DROPDOWN} style={{ zIndex: 50, elevation: 50 }}>
+        <View
+          className="border-border bg-card dark:border-dark-border dark:bg-dark-card absolute top-55 right-6 w-44 overflow-hidden rounded-2xl border shadow-xl"
+          style={{ zIndex: 50, elevation: 50 }}
+        >
           {FILTER_OPTIONS.map(({ key, label, icon }) => (
             <FilterOption
               key={key}
@@ -355,7 +312,7 @@ export default function ThreadDetail() {
       mediaCount: s.mediaCount,
       reelCount: s.reelCount,
       linkCount: s.linkCount,
-    }))
+    })),
   );
 
   const { startUnsend } = useUnsendQueue();
@@ -401,7 +358,9 @@ export default function ThreadDetail() {
       .query(Q.where("thread_id", threadId))
       .observe()
       .subscribe((data) => {
-        let media = 0, reel = 0, link = 0;
+        let media = 0,
+          reel = 0,
+          link = 0;
         for (const d of data) {
           if (d.type === "media") media++;
           else if (d.type === "reel") reel++;
@@ -431,7 +390,14 @@ export default function ThreadDetail() {
 
   // ─── Derived ───────────────────────────────────────────────────────────────
 
-  const allSelected = displayedMedia.length > 0 && selectedIds.size === displayedMedia.length;
+  const selectableDisplayedMedia = useMemo(
+    () => displayedMedia.filter((m) => m.isSent),
+    [displayedMedia],
+  );
+  const allSelected =
+    selectableDisplayedMedia.length > 0 &&
+    selectedIds.size === selectableDisplayedMedia.length &&
+    selectableDisplayedMedia.every((m) => selectedIds.has(m.itemId));
   const profileImageUrl = thread?.pfpUrl ?? null;
   const threadUsername = thread?.username ?? null;
 
@@ -447,30 +413,38 @@ export default function ThreadDetail() {
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(displayedMedia.map((m) => m.itemId)));
+      setSelectedIds(new Set(selectableDisplayedMedia.map((m) => m.itemId)));
     }
     setFilterOpen(false);
-  }, [allSelected, displayedMedia]);
+  }, [allSelected, selectableDisplayedMedia]);
 
-  const toggleSelection = useCallback((id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const toggleSelection = useCallback(
+    (id: string) => {
+      if (!displayedMedia.some((m) => m.itemId === id && m.isSent)) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    },
+    [displayedMedia],
+  );
 
-  const handleLongPress = useCallback((id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSelectedIds((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  }, []);
+  const handleLongPress = useCallback(
+    (id: string) => {
+      if (!displayedMedia.some((m) => m.itemId === id && m.isSent)) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setSelectedIds((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    },
+    [displayedMedia],
+  );
 
   const handleOpenItem = useCallback(
     (item: Media) => {
@@ -513,8 +487,8 @@ export default function ThreadDetail() {
 
   const renderItem = useCallback(
     ({ item, extraData }: { item: Media; extraData?: Set<string> }) => {
-      const selected = !!extraData?.has(item.itemId);
-      const isSelecting = !!extraData && extraData.size > 0;
+      const selected = item.isSent && !!extraData?.has(item.itemId);
+      const isSelecting = item.isSent && !!extraData && extraData.size > 0;
       return (
         <MediaGridItem
           item={item}
@@ -532,42 +506,45 @@ export default function ThreadDetail() {
 
   // ─── Stable ListHeaderComponent ────────────────────────────────────────────
 
-  const listHeaderProps: ListHeaderProps = useMemo(() => ({
-    profileImageUrl,
-    threadUsername,
-    isScraping,
-    totalItemsScanned,
-    statsValues,
-    activeTab,
-    allMediaCounts,
-    allSelected,
-    filterMode,
-    filterOpen,
-    handleBack,
-    handleSyncPress,
-    handleSelectAll,
-    handleOpenFilter,
-    handleCloseFilter,
-    setActiveTab,
-    setFilterMode,
-    setFilterOpen,
-  }), [
-    profileImageUrl,
-    threadUsername,
-    isScraping,
-    totalItemsScanned,
-    statsValues,
-    activeTab,
-    allMediaCounts,
-    allSelected,
-    filterMode,
-    filterOpen,
-    handleBack,
-    handleSyncPress,
-    handleSelectAll,
-    handleOpenFilter,
-    handleCloseFilter,
-  ]);
+  const listHeaderProps: ListHeaderProps = useMemo(
+    () => ({
+      profileImageUrl,
+      threadUsername,
+      isScraping,
+      totalItemsScanned,
+      statsValues,
+      activeTab,
+      allMediaCounts,
+      allSelected,
+      filterMode,
+      filterOpen,
+      handleBack,
+      handleSyncPress,
+      handleSelectAll,
+      handleOpenFilter,
+      handleCloseFilter,
+      setActiveTab,
+      setFilterMode,
+      setFilterOpen,
+    }),
+    [
+      profileImageUrl,
+      threadUsername,
+      isScraping,
+      totalItemsScanned,
+      statsValues,
+      activeTab,
+      allMediaCounts,
+      allSelected,
+      filterMode,
+      filterOpen,
+      handleBack,
+      handleSyncPress,
+      handleSelectAll,
+      handleOpenFilter,
+      handleCloseFilter,
+    ],
+  );
 
   const ListHeaderComponent = useCallback(
     () => <ListHeader {...listHeaderProps} />,
@@ -579,7 +556,7 @@ export default function ThreadDetail() {
   }, [filterOpen]);
 
   return (
-    <View className={CLS_ROOT}>
+    <View className="bg-background dark:bg-dark-background flex-1">
       <FlashList
         data={displayedMedia}
         renderItem={renderItem}
@@ -600,10 +577,10 @@ export default function ThreadDetail() {
       />
 
       {isSelectMode && (
-        <View className={CLS_UNSEND_BAR}>
+        <View className="absolute right-6 bottom-8 left-6 shadow-2xl">
           <Button variant="gradient" onPress={handleUnsend}>
             <FontAwesome6 name="trash-can" size={16} color="white" />
-            <Text className={CLS_UNSEND_TEXT}>
+            <Text className="ml-2 font-black text-white uppercase">
               Unsend {selectedIds.size} {selectedIds.size === 1 ? "Item" : "Items"}
             </Text>
           </Button>
