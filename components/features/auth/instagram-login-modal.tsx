@@ -43,12 +43,6 @@ const INJECTED_JAVASCRIPT = `
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-const CLS_MODAL_ROOT = "flex-1 bg-white dark:bg-[#1c2a33]";
-const CLS_WEBVIEW = "flex-1 bg-white dark:bg-[#1c2a33]";
-const CLS_LOADER_OVERLAY =
-  "absolute inset-0 z-50 items-center justify-center bg-white dark:bg-[#1c2a33]";
-const CLS_CLOSE_BTN =
-  "absolute left-4 z-50 h-10 w-10 items-center justify-center rounded-full bg-black/10 dark:bg-white/10";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -144,7 +138,7 @@ export const InstaLoginModal = memo(function InstaLoginModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className={CLS_MODAL_ROOT}>
+      <View className="flex-1 bg-white dark:bg-[#1c2a33]">
         <SafeAreaView style={{ flex: 1 }}>
           <WebView
             ref={webViewRef}
@@ -164,21 +158,21 @@ export const InstaLoginModal = memo(function InstaLoginModal({
             originWhitelist={ORIGIN_WHITELIST}
             setSupportMultipleWindows={false}
             incognito={false}
-            className={CLS_WEBVIEW}
+            className="flex-1 bg-white dark:bg-[#1c2a33]"
             androidLayerType={ANDROID_LAYER_TYPE}
             userAgent={USER_AGENT}
           />
 
           <Pressable
             onPress={onClose}
-            className={CLS_CLOSE_BTN}
+            className="absolute left-4 z-50 h-10 w-10 items-center justify-center rounded-full bg-black/10 dark:bg-white/10"
             style={{ top: Math.max(insets.top, 16) }}
           >
             <FontAwesome6 name="xmark" size={20} color="#71717a" />
           </Pressable>
 
           {loading && (
-            <View className={CLS_LOADER_OVERLAY}/>
+            <View className="absolute inset-0 z-50 items-center justify-center bg-white dark:bg-[#1c2a33]"/>
           )}
         </SafeAreaView>
       </View>

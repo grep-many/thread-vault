@@ -21,44 +21,28 @@ interface ThreadAvatarProps {
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-const CLS_AVATAR_BTN = "flex-1 items-center justify-start p-2 active:opacity-70";
-const CLS_AVATAR_IMG = "mb-2 h-16 w-16 rounded-full bg-muted dark:bg-dark-muted";
-const CLS_CHECK_OUTER =
-  "absolute bottom-2 right-0 h-6 w-6 items-center justify-center rounded-full border-[3px] border-card bg-card dark:border-dark-card dark:bg-dark-card";
-const CLS_CHECK_INNER_SELECTED =
-  "h-full w-full items-center justify-center rounded-full border-2 border-primary bg-primary";
-const CLS_CHECK_INNER_IDLE =
-  "h-full w-full items-center justify-center rounded-full border-2 border-border bg-transparent dark:border-dark-border";
-const CLS_AVATAR_NAME =
-  "text-center text-xs font-semibold text-foreground dark:text-dark-foreground";
-const CLS_HEADER_ROW = "mb-4 flex-row items-center justify-between px-1";
-const CLS_SELECTED_COUNT = "text-sm font-semibold text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_SELECT_ALL_BTN = "p-2 active:opacity-70";
-const CLS_SELECT_ALL_TEXT = "font-bold text-primary";
-const CLS_LIST_WRAP = "h-[400px]";
-const CLS_FOOTER_ROW = "mt-6 flex-row justify-end gap-3";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const ThreadAvatar = memo(function ThreadAvatar({ item, isSelected, onToggle }: ThreadAvatarProps) {
   const { threadId } = item;
   const handlePress = useCallback(() => onToggle(threadId), [onToggle, threadId]);
-  const checkInnerClass = isSelected ? CLS_CHECK_INNER_SELECTED : CLS_CHECK_INNER_IDLE;
+  const checkInnerClass = isSelected ? "h-full w-full items-center justify-center rounded-full border-2 border-primary bg-primary" : "h-full w-full items-center justify-center rounded-full border-2 border-border bg-transparent dark:border-dark-border";
 
   return (
-    <Pressable onPress={handlePress} className={CLS_AVATAR_BTN}>
+    <Pressable onPress={handlePress} className="flex-1 items-center justify-start p-2 active:opacity-70">
       <View className="relative">
         <Image
           source={item.pfpUrl ? { uri: item.pfpUrl } : undefined}
-          className={CLS_AVATAR_IMG}
+          className="mb-2 h-16 w-16 rounded-full bg-muted dark:bg-dark-muted"
         />
-        <View className={CLS_CHECK_OUTER}>
+        <View className="absolute bottom-2 right-0 h-6 w-6 items-center justify-center rounded-full border-[3px] border-card bg-card dark:border-dark-card dark:bg-dark-card">
           <View className={checkInnerClass}>
             {isSelected && <FontAwesome6 name="check" size={8} color="white" />}
           </View>
         </View>
       </View>
-      <Text className={CLS_AVATAR_NAME} numberOfLines={1}>
+      <Text className="text-center text-xs font-semibold text-foreground dark:text-dark-foreground" numberOfLines={1}>
         {item.username}
       </Text>
     </Pressable>
@@ -117,15 +101,15 @@ export const ScrapePromptDialog = memo(function ScrapePromptDialog({
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Select Threads to Sync">
-      <View className={CLS_HEADER_ROW}>
-        <Text className={CLS_SELECTED_COUNT}>{selectedCount} selected</Text>
-        <Pressable onPress={toggleSelectAll} className={CLS_SELECT_ALL_BTN}>
-          <Text className={CLS_SELECT_ALL_TEXT}>
+      <View className="mb-4 flex-row items-center justify-between px-1">
+        <Text className="text-sm font-semibold text-muted-foreground dark:text-dark-muted-foreground">{selectedCount} selected</Text>
+        <Pressable onPress={toggleSelectAll} className="p-2 active:opacity-70">
+          <Text className="font-bold text-primary">
             {allSelected ? "Deselect All" : "Select All"}
           </Text>
         </Pressable>
       </View>
-      <View className={CLS_LIST_WRAP}>
+      <View className="h-[400px]">
         <FlashList
           data={chats}
           keyExtractor={keyExtractor}
@@ -140,7 +124,7 @@ export const ScrapePromptDialog = memo(function ScrapePromptDialog({
           updateCellsBatchingPeriod={50}
         />
       </View>
-      <View className={CLS_FOOTER_ROW}>
+      <View className="mt-6 flex-row justify-end gap-3">
         <Button variant="secondary" onPress={onClose}>
           <Text className="font-bold text-foreground dark:text-dark-foreground">Cancel</Text>
         </Button>

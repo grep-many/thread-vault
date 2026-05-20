@@ -39,11 +39,7 @@ const SHADOW_STYLE = {
   elevation: 8,
 } as const;
 
-// ─── Stable class strings ─────────────────────────────────────────────────────
 
-const CLS_TOAST_ROW = "flex-row items-center gap-3 rounded-2xl border px-4 py-3";
-const CLS_TOAST_TEXT = "flex-1 text-[13px] font-semibold tracking-tight";
-const CLS_CONTAINER = "absolute left-4 right-4 top-14 z-[9999] gap-2";
 
 // ─── Toast Item ───────────────────────────────────────────────────────────────
 
@@ -101,10 +97,10 @@ const ToastItem = memo(function ToastItem({ toast, onHide }: ToastItemProps) {
   };
 
   return (
-    <Animated.View className={CLS_TOAST_ROW} style={animStyle}>
+    <Animated.View className="flex-row items-center gap-3 rounded-2xl border px-4 py-3" style={animStyle}>
       <FontAwesome6 name={ICON[toast.type]} size={16} color={colors.icon} />
       <Text
-        className={CLS_TOAST_TEXT}
+        className="flex-1 text-[13px] font-semibold tracking-tight"
         style={{ color: colors.text }}
         numberOfLines={2}
       >
@@ -138,7 +134,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={contextValue.current}>
       {children}
-      <View className={CLS_CONTAINER} pointerEvents="none">
+      <View className="absolute left-4 right-4 top-14 z-[9999] gap-2" pointerEvents="none">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onHide={hideToast} />
         ))}

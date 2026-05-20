@@ -9,12 +9,6 @@ const GRADIENT_START = { x: 0, y: 0 } as const;
 const GRADIENT_END = { x: 1, y: 0 } as const;
 
 // Stable hoisted class strings
-const CLS_BASE =
-  "relative overflow-hidden rounded-[16px] px-6 py-4 shadow-sm active:opacity-90";
-const CLS_SECONDARY =
-  "relative overflow-hidden rounded-[16px] px-6 py-4 border border-border/50 bg-card/80 shadow-sm dark:bg-dark-card/80 active:opacity-90";
-const CLS_DISABLED = " opacity-50 active:opacity-50";
-const CLS_ROW = "flex-row items-center justify-center gap-3 z-10";
 
 export const Button = memo(function Button({
   variant = "primary",
@@ -33,8 +27,8 @@ export const Button = memo(function Button({
   }, [isDisabled, onPress]);
 
   const rootClass =
-    (isSecondary ? CLS_SECONDARY : CLS_BASE) +
-    (isDisabled ? CLS_DISABLED : "") +
+    (isSecondary ? "relative overflow-hidden rounded-[16px] px-6 py-4 border border-border/50 bg-card/80 shadow-sm dark:bg-dark-card/80 active:opacity-90" : "relative overflow-hidden rounded-[16px] px-6 py-4 shadow-sm active:opacity-90") +
+    (isDisabled ? " opacity-50 active:opacity-50" : "") +
     (className ? ` ${className}` : "");
 
   return (
@@ -51,7 +45,7 @@ export const Button = memo(function Button({
           className="absolute bottom-0 left-0 right-0 top-0"
         />
       )}
-      <View className={CLS_ROW}>
+      <View className="flex-row items-center justify-center gap-3 z-10">
         {isLoading ? (
           <FontAwesome6
           name="spinner"

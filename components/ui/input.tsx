@@ -17,12 +17,6 @@ export interface InputProps extends TextInputProps {
 
 const ANDROID_PROPS = Platform.OS === "android" ? { includeFontPadding: false } : {};
 
-const CLS_CONTAINER =
-  "w-full flex-row items-center rounded-[16px] border border-border/60 bg-muted/30 px-4 dark:border-dark-border/60 dark:bg-dark-muted/30";
-const CLS_CONTAINER_DISABLED = " opacity-50";
-const CLS_CONTAINER_ENABLED = " opacity-100";
-const CLS_ICON_WRAP = "mr-3 items-center justify-center";
-const CLS_INPUT = "flex-1 text-[16px] font-medium text-foreground dark:text-dark-foreground";
 
 const Input = forwardRef<TextInput, InputProps>(
   ({ className = "", containerClassName = "", icon, editable, style, ...props }, ref) => {
@@ -41,14 +35,14 @@ const Input = forwardRef<TextInput, InputProps>(
     }, [icon]);
 
     const containerClass =
-      CLS_CONTAINER +
-      ((editable ?? true) ? CLS_CONTAINER_ENABLED : CLS_CONTAINER_DISABLED) +
+      "w-full flex-row items-center rounded-[16px] border border-border/60 bg-muted/30 px-4 dark:border-dark-border/60 dark:bg-dark-muted/30" +
+      ((editable ?? true) ? " opacity-100" : " opacity-50") +
       (containerClassName ? ` ${containerClassName}` : "");
 
     return (
       <View pointerEvents="box-none" className={containerClass}>
         {iconWithColor ? (
-          <View pointerEvents="none" className={CLS_ICON_WRAP}>
+          <View pointerEvents="none" className="mr-3 items-center justify-center">
             {iconWithColor}
           </View>
         ) : null}
@@ -60,7 +54,7 @@ const Input = forwardRef<TextInput, InputProps>(
           cursorColor="#ec4899"
           textAlignVertical="center"
           {...ANDROID_PROPS}
-          className={CLS_INPUT + (className ? ` ${className}` : "")}
+          className={"flex-1 text-[16px] font-medium text-foreground dark:text-dark-foreground" + (className ? ` ${className}` : "")}
           style={[{ flex: 1 }, style]}
           {...props}
         />

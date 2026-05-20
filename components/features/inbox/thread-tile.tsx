@@ -15,19 +15,6 @@ interface ThreadTileProps {
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-const CLS_ROW =
-  "flex-row items-center justify-between rounded-xl px-2 py-3 active:bg-muted/50 dark:active:bg-dark-muted/50";
-const CLS_LEFT = "flex-1 flex-row items-center";
-const CLS_AVATAR_WRAP =
-  "h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-muted dark:bg-dark-muted";
-const CLS_AVATAR_IMG = "h-full w-full";
-const CLS_SYNC_BADGE =
-  "absolute right-0 bottom-0 rounded-full bg-background p-0.5 shadow-sm dark:bg-dark-background";
-const CLS_TEXT_WRAP = "ml-3 flex-1";
-const CLS_PRIMARY_TEXT = "text-base font-semibold text-dark dark:text-white";
-const CLS_SECONDARY_TEXT = "text-xs text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_SYNC_BTN =
-  "ml-4 h-8 w-8 items-center justify-center rounded-full bg-muted active:opacity-70 dark:bg-dark-muted";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -40,14 +27,14 @@ const ThreadTileComponent = memo(function ThreadTileComponent({
   const displayName = item.fullName || item.username;
 
   return (
-    <Pressable onPress={onPress} className={CLS_ROW}>
-      <View className={CLS_LEFT}>
+    <Pressable onPress={onPress} className="flex-row items-center justify-between rounded-xl px-2 py-3 active:bg-muted/50 dark:active:bg-dark-muted/50">
+      <View className="flex-1 flex-row items-center">
         <View className="relative">
-          <View className={CLS_AVATAR_WRAP}>
+          <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-muted dark:bg-dark-muted">
             {item.pfpUrl ? (
               <Image
                 source={{ uri: item.pfpUrl }}
-                className={CLS_AVATAR_IMG}
+                className="h-full w-full"
                 resizeMode="cover"
               />
             ) : (
@@ -55,17 +42,17 @@ const ThreadTileComponent = memo(function ThreadTileComponent({
             )}
           </View>
           {isSyncing && (
-            <View className={CLS_SYNC_BADGE}>
+            <View className="absolute right-0 bottom-0 rounded-full bg-background p-0.5 shadow-sm dark:bg-dark-background">
               <FontAwesome6 name="rotate" size={10} color="#ec4899" className="animate-spin" />
             </View>
           )}
         </View>
-        <View className={CLS_TEXT_WRAP}>
-          <Text className={CLS_PRIMARY_TEXT} numberOfLines={1}>
+        <View className="ml-3 flex-1">
+          <Text className="text-base font-semibold text-dark dark:text-white" numberOfLines={1}>
             {displayName}
           </Text>
           {!!item.fullName && (
-            <Text className={CLS_SECONDARY_TEXT} numberOfLines={1}>
+            <Text className="text-xs text-muted-foreground dark:text-dark-muted-foreground" numberOfLines={1}>
               @{item.username}
             </Text>
           )}
@@ -73,7 +60,7 @@ const ThreadTileComponent = memo(function ThreadTileComponent({
       </View>
       <Pressable
         onPress={onSyncPress}
-        className={CLS_SYNC_BTN}
+        className="ml-4 h-8 w-8 items-center justify-center rounded-full bg-muted active:opacity-70 dark:bg-dark-muted"
         hitSlop={SYNC_BUTTON_HIT_SLOP}
       >
         <FontAwesome6

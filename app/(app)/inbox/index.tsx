@@ -25,40 +25,6 @@ const keyExtractor = (item: InboxModel) => item.threadId;
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-const CLS_ROOT = "flex-1 bg-background dark:bg-dark-background";
-const CLS_HEADER = "z-50 px-5 pt-10 pb-4";
-const CLS_TITLE_ROW = "z-50 mb-6 flex-row items-center justify-between";
-const CLS_TITLE_LEFT = "flex-row items-center";
-const CLS_TITLE_TEXT = "mr-3 text-3xl font-bold text-foreground dark:text-dark-foreground";
-const CLS_SYNC_BTN = "w-8 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted";
-const CLS_USER_BTN = "w-10 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted";
-const CLS_DROPDOWN_WRAP =
-  "absolute top-24 right-5 z-[100] w-48 rounded-xl border border-border bg-card p-2 shadow-xl dark:border-dark-border dark:bg-dark-card";
-const CLS_DROPDOWN_ITEM =
-  "flex-row items-center rounded-lg p-3 active:bg-muted/50 dark:active:bg-dark-muted/50";
-const CLS_DROPDOWN_DIVIDER = "my-1 h-px bg-border dark:bg-dark-border";
-const CLS_DROPDOWN_LOGOUT =
-  "flex-row items-center rounded-lg p-3 active:bg-red-50 dark:active:bg-red-900/20";
-const CLS_DROPDOWN_TEXT = "ml-3 font-medium text-foreground dark:text-dark-foreground";
-const CLS_BANNER = "mb-4";
-const CLS_BANNER_STATUS =
-  "mb-2 text-xs font-semibold text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_STATS_ROW = "flex-row items-center gap-3";
-const CLS_STAT_TEXT =
-  "text-[10px] font-bold tracking-wider text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_LIST_WRAP = "flex-1";
-const CLS_SKELETON_WRAP = "px-3 pt-2";
-const CLS_SKELETON_ROW =
-  "mb-1 flex-row items-center justify-between rounded-xl bg-muted/50 px-2 py-3 opacity-60 dark:bg-dark-muted/50";
-const CLS_SKELETON_LEFT = "flex-1 flex-row items-center";
-const CLS_SKELETON_AVATAR = "h-12 w-12 animate-pulse rounded-full bg-muted dark:bg-dark-muted";
-const CLS_SKELETON_LINES = "ml-3 flex-1 gap-2";
-const CLS_SKELETON_LINE1 = "h-4 w-32 animate-pulse rounded-md bg-muted dark:bg-dark-muted";
-const CLS_SKELETON_LINE2 = "h-3 w-20 animate-pulse rounded-md bg-muted dark:bg-dark-muted";
-const CLS_SKELETON_BTN = "h-8 w-8 animate-pulse rounded-full bg-muted dark:bg-dark-muted";
-const CLS_EMPTY = "flex-1 items-center justify-center p-6 opacity-50";
-const CLS_EMPTY_TEXT =
-  "mt-4 text-center font-medium text-muted-foreground dark:text-dark-muted-foreground";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -233,12 +199,12 @@ export default function Inbox() {
   const syncAnimClass = isSyncing && !isPaused ? "animate-spin" : "";
 
   return (
-    <View className={CLS_ROOT}>
-      <View className={CLS_HEADER}>
-        <View className={CLS_TITLE_ROW}>
-          <View className={CLS_TITLE_LEFT}>
-            <Text className={CLS_TITLE_TEXT}>Thread Vault</Text>
-            <Pressable onPress={handleSyncIconPress} className={CLS_SYNC_BTN}>
+    <View className="flex-1 bg-background dark:bg-dark-background">
+      <View className="z-50 px-5 pt-10 pb-4">
+        <View className="z-50 mb-6 flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <Text className="mr-3 text-3xl font-bold text-foreground dark:text-dark-foreground">Thread Vault</Text>
+            <Pressable onPress={handleSyncIconPress} className="w-8 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted">
               <FontAwesome6
                 name={syncIconName}
                 size={14}
@@ -249,29 +215,29 @@ export default function Inbox() {
           </View>
 
           <View className="relative z-50">
-            <Pressable onPress={handleDropdownToggle} className={CLS_USER_BTN}>
+            <Pressable onPress={handleDropdownToggle} className="w-10 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted">
               <FontAwesome6 name="user" size={16} color="#71717a" />
             </Pressable>
 
             {dropdownOpen && (
               <Modal visible transparent animationType="none" onRequestClose={handleDropdownClose}>
                 <Pressable className="flex-1" onPress={handleDropdownClose}>
-                  <View className={CLS_DROPDOWN_WRAP}>
-                    <Pressable onPress={handleSync} className={CLS_DROPDOWN_ITEM}>
+                  <View className="absolute top-24 right-5 z-[100] w-48 rounded-xl border border-border bg-card p-2 shadow-xl dark:border-dark-border dark:bg-dark-card">
+                    <Pressable onPress={handleSync} className="flex-row items-center rounded-lg p-3 active:bg-muted/50 dark:active:bg-dark-muted/50">
                       <FontAwesome6 name={isSyncing ? "pause" : "play"} size={14} color="#71717a" />
-                      <Text className={CLS_DROPDOWN_TEXT}>
+                      <Text className="ml-3 font-medium text-foreground dark:text-dark-foreground">
                         {isSyncing ? "Pause Sync" : "Start Inbox Sync"}
                       </Text>
                     </Pressable>
 
-                    <Pressable onPress={handleShowPrompt} className={CLS_DROPDOWN_ITEM}>
+                    <Pressable onPress={handleShowPrompt} className="flex-row items-center rounded-lg p-3 active:bg-muted/50 dark:active:bg-dark-muted/50">
                       <FontAwesome6 name="list-check" size={14} color="#71717a" />
-                      <Text className={CLS_DROPDOWN_TEXT}>Select Threads</Text>
+                      <Text className="ml-3 font-medium text-foreground dark:text-dark-foreground">Select Threads</Text>
                     </Pressable>
 
-                    <View className={CLS_DROPDOWN_DIVIDER} />
+                    <View className="my-1 h-px bg-border dark:bg-dark-border" />
 
-                    <Pressable onPress={handleLogoutPress} className={CLS_DROPDOWN_LOGOUT}>
+                    <Pressable onPress={handleLogoutPress} className="flex-row items-center rounded-lg p-3 active:bg-red-50 dark:active:bg-red-900/20">
                       <FontAwesome6 name="arrow-right-from-bracket" size={14} color="#ef4444" />
                       <Text className="ml-3 font-medium text-red-500">Logout</Text>
                     </Pressable>
@@ -283,12 +249,12 @@ export default function Inbox() {
         </View>
 
         {showBanner && (
-          <View className={CLS_BANNER}>
-            <Text className={CLS_BANNER_STATUS}>{progressStatus}</Text>
+          <View className="mb-4">
+            <Text className="mb-2 text-xs font-semibold text-muted-foreground dark:text-dark-muted-foreground">{progressStatus}</Text>
             {totalItemsScanned > 0 && (
-              <View className={CLS_STATS_ROW}>
+              <View className="flex-row items-center gap-3">
                 {STATS_LABELS.map((label, i) => (
-                  <Text key={label} className={CLS_STAT_TEXT}>
+                  <Text key={label} className="text-[10px] font-bold tracking-wider text-muted-foreground dark:text-dark-muted-foreground">
                     {label}: {statValues[i]}
                   </Text>
                 ))}
@@ -305,26 +271,26 @@ export default function Inbox() {
         />
       </View>
 
-      <View className={CLS_LIST_WRAP}>
+      <View className="flex-1">
         {isLoading || (sortedChats.length === 0 && isSyncing) ? (
-          <View className={CLS_SKELETON_WRAP}>
+          <View className="px-3 pt-2">
             {SKELETON_KEYS.map((i) => (
-              <View key={i} className={CLS_SKELETON_ROW}>
-                <View className={CLS_SKELETON_LEFT}>
-                  <View className={CLS_SKELETON_AVATAR} />
-                  <View className={CLS_SKELETON_LINES}>
-                    <View className={CLS_SKELETON_LINE1} />
-                    <View className={CLS_SKELETON_LINE2} />
+              <View key={i} className="mb-1 flex-row items-center justify-between rounded-xl bg-muted/50 px-2 py-3 opacity-60 dark:bg-dark-muted/50">
+                <View className="flex-1 flex-row items-center">
+                  <View className="h-12 w-12 animate-pulse rounded-full bg-muted dark:bg-dark-muted" />
+                  <View className="ml-3 flex-1 gap-2">
+                    <View className="h-4 w-32 animate-pulse rounded-md bg-muted dark:bg-dark-muted" />
+                    <View className="h-3 w-20 animate-pulse rounded-md bg-muted dark:bg-dark-muted" />
                   </View>
                 </View>
-                <View className={CLS_SKELETON_BTN} />
+                <View className="h-8 w-8 animate-pulse rounded-full bg-muted dark:bg-dark-muted" />
               </View>
             ))}
           </View>
         ) : sortedChats.length === 0 ? (
-          <View className={CLS_EMPTY}>
+          <View className="flex-1 items-center justify-center p-6 opacity-50">
             <FontAwesome6 name="inbox" size={48} color="#71717a" />
-            <Text className={CLS_EMPTY_TEXT}>
+            <Text className="mt-4 text-center font-medium text-muted-foreground dark:text-dark-muted-foreground">
               No threads found. Start an inbox sync to fetch your latest conversations.
             </Text>
           </View>

@@ -26,34 +26,6 @@ const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-const CLS_SCROLL = "bg-background dark:bg-dark-background";
-const CLS_OUTER = "flex-1 items-center justify-center p-6";
-const CLS_INNER = "w-full max-w-md";
-const CLS_HERO = "mb-8 items-center";
-const CLS_ICON_WRAP = "mb-6 overflow-hidden rounded-3xl shadow-lg shadow-primary/50";
-const CLS_GRADIENT = "h-16 w-16 items-center justify-center";
-const CLS_ICON_IMG = "h-16 w-16";
-const CLS_APP_TITLE =
-  "mb-2 text-4xl font-bold tracking-tight text-foreground dark:text-dark-foreground";
-const CLS_APP_SUBTITLE =
-  "text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_TABS_WRAP =
-  "mb-8 flex-row rounded-2xl bg-muted/50 p-1.5 dark:bg-dark-muted/30";
-const CLS_CARD =
-  "overflow-hidden rounded-4xl border border-border bg-card p-8 shadow-xl dark:border-dark-border dark:bg-dark-card";
-const CLS_INSTA_TAB = "gap-6";
-const CLS_INSTA_ICON_SECTION = "items-center py-4";
-const CLS_INSTA_ICON_CIRCLE = "mb-4 rounded-full bg-primary/10 p-4";
-const CLS_INSTA_DESC =
-  "text-center leading-6 text-muted-foreground dark:text-dark-muted-foreground";
-const CLS_MANUAL_TAB = "gap-6";
-const CLS_MANUAL_LABEL_ROW =
-  "mb-3 flex-row items-center justify-between px-1";
-const CLS_MANUAL_LABEL =
-  "text-[10px] font-bold tracking-widest text-muted-foreground uppercase dark:text-dark-muted-foreground";
-const CLS_GUIDE_ROW = "flex-row items-center gap-1";
-const CLS_GUIDE_TEXT = "text-xs font-semibold text-primary";
-const CLS_VALIDATE_TEXT = "font-bold text-white";
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -101,22 +73,22 @@ export default function LoginScreen() {
   const handleCloseInstaModal = useCallback(() => setIsInstaModalOpen(false), []);
 
   return (
-    <ScrollView contentContainerStyle={SCROLL_CONTENT_STYLE} className={CLS_SCROLL}>
-      <View className={CLS_OUTER}>
-        <View className={CLS_INNER}>
-          <View className={CLS_HERO}>
-            <View className={CLS_ICON_WRAP}>
-              <LinearGradient colors={GRADIENT_COLORS} className={CLS_GRADIENT}>
-                <Image source={ICONPNG} className={CLS_ICON_IMG} />
+    <ScrollView contentContainerStyle={SCROLL_CONTENT_STYLE} className="bg-background dark:bg-dark-background">
+      <View className="flex-1 items-center justify-center p-6">
+        <View className="w-full max-w-md">
+          <View className="mb-8 items-center">
+            <View className="mb-6 overflow-hidden rounded-3xl shadow-lg shadow-primary/50">
+              <LinearGradient colors={GRADIENT_COLORS} className="h-16 w-16 items-center justify-center">
+                <Image source={ICONPNG} className="h-16 w-16" />
               </LinearGradient>
             </View>
-            <Text className={CLS_APP_TITLE}>ThreadsVault</Text>
-            <Text className={CLS_APP_SUBTITLE}>
+            <Text className="mb-2 text-4xl font-bold tracking-tight text-foreground dark:text-dark-foreground">ThreadsVault</Text>
+            <Text className="text-muted-foreground dark:text-dark-muted-foreground">
               Choose your preferred connection method
             </Text>
           </View>
 
-          <View className={CLS_TABS_WRAP}>
+          <View className="mb-8 flex-row rounded-2xl bg-muted/50 p-1.5 dark:bg-dark-muted/30">
             <TabButton
               active={activeTab === "insta"}
               label="Login"
@@ -131,14 +103,14 @@ export default function LoginScreen() {
             />
           </View>
 
-          <View className={CLS_CARD}>
+          <View className="overflow-hidden rounded-4xl border border-border bg-card p-8 shadow-xl dark:border-dark-border dark:bg-dark-card">
             {activeTab === "insta" ? (
-              <View className={CLS_INSTA_TAB}>
-                <View className={CLS_INSTA_ICON_SECTION}>
-                  <View className={CLS_INSTA_ICON_CIRCLE}>
+              <View className="gap-6">
+                <View className="items-center py-4">
+                  <View className="mb-4 rounded-full bg-primary/10 p-4">
                     <FontAwesome6 name="instagram" size={32} color="#ec4899" />
                   </View>
-                  <Text className={CLS_INSTA_DESC}>
+                  <Text className="text-center leading-6 text-muted-foreground dark:text-dark-muted-foreground">
                     Connect securely using the official Instagram login flow. No cookies required.
                   </Text>
                 </View>
@@ -155,17 +127,17 @@ export default function LoginScreen() {
                 />
               </View>
             ) : (
-              <View className={CLS_MANUAL_TAB}>
+              <View className="gap-6">
                 <View>
-                  <View className={CLS_MANUAL_LABEL_ROW}>
-                    <Text className={CLS_MANUAL_LABEL}>Session ID Cookie</Text>
+                  <View className="mb-3 flex-row items-center justify-between px-1">
+                    <Text className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase dark:text-dark-muted-foreground">Session ID Cookie</Text>
                     <Pressable
                       onPress={handleOpenHelp}
-                      className={CLS_GUIDE_ROW}
+                      className="flex-row items-center gap-1"
                       hitSlop={HIT_SLOP}
                     >
                       <FontAwesome6 name="circle-question" size={14} color="#f472b6" />
-                      <Text className={CLS_GUIDE_TEXT}>Guide</Text>
+                      <Text className="text-xs font-semibold text-primary">Guide</Text>
                     </Pressable>
                   </View>
 
@@ -178,7 +150,7 @@ export default function LoginScreen() {
                 </View>
 
                 <Button variant="gradient" isLoading={isLoading} onPress={handleConnect}>
-                  <Text className={CLS_VALIDATE_TEXT}>Validate Session</Text>
+                  <Text className="font-bold text-white">Validate Session</Text>
                   <FontAwesome6 name="arrow-right" size={16} color="white" />
                 </Button>
               </View>

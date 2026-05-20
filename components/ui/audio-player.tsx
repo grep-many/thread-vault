@@ -26,20 +26,6 @@ const NO_OFFSET = {} as const;
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-const CLS_ROOT = "flex-1 w-full items-center justify-center bg-black";
-const CLS_MAIN_CONTENT = "items-center justify-center gap-12";
-const CLS_WAVEFORM_ICON = "mb-4 opacity-80";
-const CLS_PRESS = "items-center justify-center active:opacity-80";
-const CLS_PLAY_BTN_WRAP =
-  "h-20 w-20 items-center justify-center rounded-full bg-white/10";
-const CLS_PROGRESS_CONTAINER = "w-72 px-4";
-const CLS_TRACK = "h-1.5 w-full overflow-hidden rounded-full bg-white/20";
-const CLS_FILL = "h-full rounded-full bg-white";
-const CLS_THUMB =
-  "absolute -top-1.5 h-4 w-4 rounded-full bg-white shadow-sm shadow-black/50";
-const CLS_TIME_ROW = "mt-3 flex-row justify-between w-full";
-const CLS_TIME_TEXT = "text-xs font-medium text-white/60 tracking-widest";
-const CLS_STATUS_TEXT = "mt-6 text-sm font-semibold text-white/50 tracking-widest uppercase";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,17 +97,17 @@ export const AudioPlayer = memo(function AudioPlayer({
   const iconOffset = playing ? NO_OFFSET : PLAY_ICON_OFFSET;
 
   return (
-    <View className={CLS_ROOT}>
-      <View className={CLS_MAIN_CONTENT}>
+    <View className="flex-1 w-full items-center justify-center bg-black">
+      <View className="items-center justify-center gap-12">
         <FontAwesome6
           name="music"
           size={48}
           color="white"
-          className={CLS_WAVEFORM_ICON}
+          className="mb-4 opacity-80"
         />
 
-        <Pressable onPress={togglePlayback} className={CLS_PRESS}>
-          <View className={CLS_PLAY_BTN_WRAP}>
+        <Pressable onPress={togglePlayback} className="items-center justify-center active:opacity-80">
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-white/10">
             <FontAwesome6
               name={playing ? "pause" : "play"}
               size={32}
@@ -131,21 +117,21 @@ export const AudioPlayer = memo(function AudioPlayer({
           </View>
         </Pressable>
 
-        <View className={CLS_PROGRESS_CONTAINER}>
+        <View className="w-72 px-4">
           <View className="relative justify-center">
-            <View className={CLS_TRACK}>
-              <View className={CLS_FILL} style={{ width: progressWidth }} />
+            <View className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+              <View className="h-full rounded-full bg-white" style={{ width: progressWidth }} />
             </View>
-            <View className={CLS_THUMB} style={{ left: progressWidth, marginLeft: -8 }} />
+            <View className="absolute -top-1.5 h-4 w-4 rounded-full bg-white shadow-sm shadow-black/50" style={{ left: progressWidth, marginLeft: -8 }} />
           </View>
 
-          <View className={CLS_TIME_ROW}>
-            <Text className={CLS_TIME_TEXT}>{formatTime(position)}</Text>
-            <Text className={CLS_TIME_TEXT}>{formatTime(duration)}</Text>
+          <View className="mt-3 flex-row justify-between w-full">
+            <Text className="text-xs font-medium text-white/60 tracking-widest">{formatTime(position)}</Text>
+            <Text className="text-xs font-medium text-white/60 tracking-widest">{formatTime(duration)}</Text>
           </View>
         </View>
 
-        <Text className={CLS_STATUS_TEXT}>
+        <Text className="mt-6 text-sm font-semibold text-white/50 tracking-widest uppercase">
           {playing ? "Playing" : "Paused"}
         </Text>
       </View>
