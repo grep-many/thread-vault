@@ -22,7 +22,7 @@ export default function AuthLayout() {
   useAuthGuard();
 
   return (
-    <View className="flex-1 bg-background dark:bg-dark-background">
+    <View className="bg-background dark:bg-dark-background flex-1">
       <StatusBar style={theme === "light" ? "dark" : "light"} />
       <SafeAreaView style={SAFE_AREA_STYLE}>
         <Stack screenOptions={SCREEN_OPTIONS} />

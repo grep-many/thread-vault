@@ -28,11 +28,7 @@ export function useAuthGuard() {
         const { sessionId, csrfToken, appId } = useSession.getState();
 
         if (sessionId) {
-          const { isValid, hasExistingData } = await validateSession(
-            sessionId,
-            csrfToken,
-            appId,
-          );
+          const { isValid, hasExistingData } = await validateSession(sessionId, csrfToken, appId);
           if (cancelled) return;
 
           if (isValid) {

@@ -26,7 +26,6 @@ const NO_OFFSET = {} as const;
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatTime(ms: number): string {
@@ -38,10 +37,7 @@ function formatTime(ms: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const AudioPlayer = memo(function AudioPlayer({
-  url,
-  isActive = true,
-}: AudioPlayerProps) {
+export const AudioPlayer = memo(function AudioPlayer({ url, isActive = true }: AudioPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -64,10 +60,7 @@ export const AudioPlayer = memo(function AudioPlayer({
   const togglePlayback = useCallback(async () => {
     if (!soundRef.current) {
       await Audio.setAudioModeAsync(AUDIO_MODE);
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: url },
-        { shouldPlay: true },
-      );
+      const { sound: newSound } = await Audio.Sound.createAsync({ uri: url }, { shouldPlay: true });
       soundRef.current = newSound;
       setPlaying(true);
 
@@ -97,16 +90,14 @@ export const AudioPlayer = memo(function AudioPlayer({
   const iconOffset = playing ? NO_OFFSET : PLAY_ICON_OFFSET;
 
   return (
-    <View className="flex-1 w-full items-center justify-center bg-black">
+    <View className="w-full flex-1 items-center justify-center bg-black">
       <View className="items-center justify-center gap-12">
-        <FontAwesome6
-          name="music"
-          size={48}
-          color="white"
-          className="mb-4 opacity-80"
-        />
+        <FontAwesome6 name="music" size={48} color="white" className="mb-4 opacity-80" />
 
-        <Pressable onPress={togglePlayback} className="items-center justify-center active:opacity-80">
+        <Pressable
+          onPress={togglePlayback}
+          className="items-center justify-center active:opacity-80"
+        >
           <View className="h-20 w-20 items-center justify-center rounded-full bg-white/10">
             <FontAwesome6
               name={playing ? "pause" : "play"}
@@ -122,16 +113,23 @@ export const AudioPlayer = memo(function AudioPlayer({
             <View className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
               <View className="h-full rounded-full bg-white" style={{ width: progressWidth }} />
             </View>
-            <View className="absolute -top-1.5 h-4 w-4 rounded-full bg-white shadow-sm shadow-black/50" style={{ left: progressWidth, marginLeft: -8 }} />
+            <View
+              className="absolute -top-1.5 h-4 w-4 rounded-full bg-white shadow-sm shadow-black/50"
+              style={{ left: progressWidth, marginLeft: -8 }}
+            />
           </View>
 
-          <View className="mt-3 flex-row justify-between w-full">
-            <Text className="text-xs font-medium text-white/60 tracking-widest">{formatTime(position)}</Text>
-            <Text className="text-xs font-medium text-white/60 tracking-widest">{formatTime(duration)}</Text>
+          <View className="mt-3 w-full flex-row justify-between">
+            <Text className="text-xs font-medium tracking-widest text-white/60">
+              {formatTime(position)}
+            </Text>
+            <Text className="text-xs font-medium tracking-widest text-white/60">
+              {formatTime(duration)}
+            </Text>
           </View>
         </View>
 
-        <Text className="mt-6 text-sm font-semibold text-white/50 tracking-widest uppercase">
+        <Text className="mt-6 text-sm font-semibold tracking-widest text-white/50 uppercase">
           {playing ? "Playing" : "Paused"}
         </Text>
       </View>

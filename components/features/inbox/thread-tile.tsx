@@ -15,7 +15,6 @@ interface ThreadTileProps {
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ThreadTileComponent = memo(function ThreadTileComponent({
@@ -27,32 +26,34 @@ const ThreadTileComponent = memo(function ThreadTileComponent({
   const displayName = item.fullName || item.username;
 
   return (
-    <Pressable onPress={onPress} className="flex-row items-center justify-between rounded-xl px-2 py-3 active:bg-muted/50 dark:active:bg-dark-muted/50">
+    <Pressable
+      onPress={onPress}
+      className="active:bg-muted/50 dark:active:bg-dark-muted/50 flex-row items-center justify-between rounded-xl px-2 py-3"
+    >
       <View className="flex-1 flex-row items-center">
         <View className="relative">
-          <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-muted dark:bg-dark-muted">
+          <View className="bg-muted dark:bg-dark-muted h-12 w-12 items-center justify-center overflow-hidden rounded-full">
             {item.pfpUrl ? (
-              <Image
-                source={{ uri: item.pfpUrl }}
-                className="h-full w-full"
-                resizeMode="cover"
-              />
+              <Image source={{ uri: item.pfpUrl }} className="h-full w-full" resizeMode="cover" />
             ) : (
               <FontAwesome6 name="user" size={20} color="#a1a1aa" />
             )}
           </View>
           {isSyncing && (
-            <View className="absolute right-0 bottom-0 rounded-full bg-background p-0.5 shadow-sm dark:bg-dark-background">
+            <View className="bg-background dark:bg-dark-background absolute right-0 bottom-0 rounded-full p-0.5 shadow-sm">
               <FontAwesome6 name="rotate" size={10} color="#ec4899" className="animate-spin" />
             </View>
           )}
         </View>
         <View className="ml-3 flex-1">
-          <Text className="text-base font-semibold text-dark dark:text-white" numberOfLines={1}>
+          <Text className="text-dark text-base font-semibold dark:text-white" numberOfLines={1}>
             {displayName}
           </Text>
           {!!item.fullName && (
-            <Text className="text-xs text-muted-foreground dark:text-dark-muted-foreground" numberOfLines={1}>
+            <Text
+              className="text-muted-foreground dark:text-dark-muted-foreground text-xs"
+              numberOfLines={1}
+            >
               @{item.username}
             </Text>
           )}
@@ -60,7 +61,7 @@ const ThreadTileComponent = memo(function ThreadTileComponent({
       </View>
       <Pressable
         onPress={onSyncPress}
-        className="ml-4 h-8 w-8 items-center justify-center rounded-full bg-muted active:opacity-70 dark:bg-dark-muted"
+        className="bg-muted dark:bg-dark-muted ml-4 h-8 w-8 items-center justify-center rounded-full active:opacity-70"
         hitSlop={SYNC_BUTTON_HIT_SLOP}
       >
         <FontAwesome6

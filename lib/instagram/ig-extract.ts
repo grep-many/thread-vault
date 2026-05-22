@@ -25,8 +25,9 @@ export function extractItem(item: unknown, peerIds: string[]): ExtractedMedia | 
 
     const id = record.item_id as string;
     const sender_pk =
-      ((record.user_id ?? record.sender_id ?? record.sender) as string | number | undefined)
-        ?.toString() ?? "";
+      (
+        (record.user_id ?? record.sender_id ?? record.sender) as string | number | undefined
+      )?.toString() ?? "";
 
     const is_sent =
       record.is_sent_by_viewer !== undefined
@@ -48,8 +49,8 @@ export function extractItem(item: unknown, peerIds: string[]): ExtractedMedia | 
       !!record.clip ||
       !!record.reel_share ||
       (record.media as Record<string, unknown>)?.product_type === "clips" ||
-      ((record.direct_media_share as Record<string, Record<string, unknown>>)?.media
-        ?.product_type === "clips");
+      (record.direct_media_share as Record<string, Record<string, unknown>>)?.media
+        ?.product_type === "clips";
     const isGroupLink = itemType === "link";
 
     if (!isGroupMedia && !isGroupReel && !isGroupLink) return null;
@@ -72,8 +73,8 @@ export function extractItem(item: unknown, peerIds: string[]): ExtractedMedia | 
       extracted.type = "media";
       extracted.content_type = "audio";
       extracted.url =
-        ((record.voice_media as Record<string, Record<string, Record<string, string>>>)?.media
-          ?.audio?.audio_src) ?? "voice_media";
+        (record.voice_media as Record<string, Record<string, Record<string, string>>>)?.media?.audio
+          ?.audio_src ?? "voice_media";
       extracted.text = "Voice Message";
     } else if (isGroupLink) {
       const link = record.link as Record<string, Record<string, string>> | undefined;

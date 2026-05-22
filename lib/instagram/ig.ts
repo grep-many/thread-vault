@@ -60,7 +60,7 @@ export async function igRequest(
       body: options.body ?? undefined,
     });
 
-    const data = await response.json() as { status?: string; message?: string };
+    const data = (await response.json()) as { status?: string; message?: string };
 
     if (data.status === "fail") {
       throw new Error(data.message ?? "API Error");

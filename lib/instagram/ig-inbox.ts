@@ -53,9 +53,7 @@ export async function IGInbox({
       const existingIds = new Set(allExisting.map((t) => t.threadId));
       const expiredAt = Date.now() + THREAD_TTL_MS;
 
-      const newThreads = threads.filter(
-        (thread) => !existingIds.has(thread.thread_id as string),
-      );
+      const newThreads = threads.filter((thread) => !existingIds.has(thread.thread_id as string));
 
       if (newThreads.length > 0) {
         await database.write(async () => {

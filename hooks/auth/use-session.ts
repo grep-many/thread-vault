@@ -57,8 +57,7 @@ export const useSession = create<SessionState>((set) => ({
           );
         });
       }
-    } catch {
-    }
+    } catch {}
 
     return { removedMedia, removedThreads };
   },

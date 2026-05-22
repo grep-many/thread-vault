@@ -6,7 +6,6 @@ const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-
 export const Dialog = memo(function Dialog({
   isOpen,
   onClose,
@@ -25,7 +24,9 @@ export const Dialog = memo(function Dialog({
   );
 
   const showHeader = !!(title || (!disableClose && !fullScreen));
-  const sheetClass = fullScreen ? "h-full w-full rounded-none bg-background dark:bg-dark-background" : "w-[92%] max-w-sm overflow-hidden rounded-4xl border border-border bg-card shadow-2xl dark:border-dark-border dark:bg-dark-card";
+  const sheetClass = fullScreen
+    ? "h-full w-full rounded-none bg-background dark:bg-dark-background"
+    : "w-[92%] max-w-sm overflow-hidden rounded-4xl border border-border bg-card shadow-2xl dark:border-dark-border dark:bg-dark-card";
   const bodyClass = fullScreen ? "flex-1 p-6" : "w-full p-6";
 
   return (
@@ -36,22 +37,23 @@ export const Dialog = memo(function Dialog({
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <Pressable className="flex-1 items-center justify-center bg-white/80 dark:bg-black/80" onPress={handleClose}>
+      <Pressable
+        className="flex-1 items-center justify-center bg-white/80 dark:bg-black/80"
+        onPress={handleClose}
+      >
         <Pressable onPress={stopPropagation} className={sheetClass}>
           {showHeader && (
-            <View className="relative w-full items-center justify-center border-b border-border bg-muted/50 p-5 dark:border-dark-border dark:bg-dark-muted/50">
+            <View className="border-border bg-muted/50 dark:border-dark-border dark:bg-dark-muted/50 relative w-full items-center justify-center border-b p-5">
               {typeof title === "string" ? (
-                <Text className="text-lg font-semibold text-foreground dark:text-dark-foreground">{title}</Text>
+                <Text className="text-foreground dark:text-dark-foreground text-lg font-semibold">
+                  {title}
+                </Text>
               ) : (
                 title
               )}
 
               {!disableClose && !fullScreen && (
-                <Pressable
-                  onPress={onClose}
-                  className="absolute right-4 p-1"
-                  hitSlop={HIT_SLOP}
-                >
+                <Pressable onPress={onClose} className="absolute right-4 p-1" hitSlop={HIT_SLOP}>
                   <FontAwesome6 name="xmark" size={20} color="#71717a" />
                 </Pressable>
               )}

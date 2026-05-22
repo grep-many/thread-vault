@@ -1,7 +1,7 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import CookieManager from "@react-native-cookies/cookies";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {  Modal, Platform, Pressable, View } from "react-native";
+import { Modal, Platform, Pressable, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, type WebViewNavigation } from "react-native-webview";
 
@@ -43,7 +43,6 @@ const INJECTED_JAVASCRIPT = `
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const InstaLoginModal = memo(function InstaLoginModal({
@@ -82,15 +81,10 @@ export const InstaLoginModal = memo(function InstaLoginModal({
       const cookies = await CookieManager.get(IG_COOKIE_URL, true);
       if (cookies?.sessionid) {
         clearPolling();
-        onSessionExtracted(
-          cookies.sessionid.value,
-          cookies.csrftoken?.value,
-          appIdRef.current,
-        );
+        onSessionExtracted(cookies.sessionid.value, cookies.csrftoken?.value, appIdRef.current);
         onClose();
       }
-    } catch {
-    }
+    } catch {}
   }, [clearPolling, onClose, onSessionExtracted]);
 
   useEffect(() => {
@@ -132,12 +126,7 @@ export const InstaLoginModal = memo(function InstaLoginModal({
   }, []);
 
   return (
-    <Modal
-      visible={isOpen}
-      transparent={false}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={isOpen} transparent={false} animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 bg-white dark:bg-[#1c2a33]">
         <SafeAreaView style={{ flex: 1 }}>
           <WebView
@@ -172,7 +161,7 @@ export const InstaLoginModal = memo(function InstaLoginModal({
           </Pressable>
 
           {loading && (
-            <View className="absolute inset-0 z-50 items-center justify-center bg-white dark:bg-[#1c2a33]"/>
+            <View className="absolute inset-0 z-50 items-center justify-center bg-white dark:bg-[#1c2a33]" />
           )}
         </SafeAreaView>
       </View>

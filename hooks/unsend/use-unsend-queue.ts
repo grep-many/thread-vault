@@ -92,9 +92,7 @@ async function processQueue(get: () => UnsendQueueState, set: SetFn) {
     while (!success && !get().isCancelled) {
       set((state) => ({
         currentItemId: job.itemId,
-        jobs: state.jobs.map((j) =>
-          j.itemId === job.itemId ? { ...j, status: "processing" } : j,
-        ),
+        jobs: state.jobs.map((j) => (j.itemId === job.itemId ? { ...j, status: "processing" } : j)),
       }));
 
       const result = await IGUnsendItem({
@@ -116,14 +114,11 @@ async function processQueue(get: () => UnsendQueueState, set: SetFn) {
               await database.batch(...items.map((item) => item.prepareDestroyPermanently()));
             }
           });
-        } catch {
-        }
+        } catch {}
 
         set((state) => ({
           successCount: state.successCount + 1,
-          jobs: state.jobs.map((j) =>
-            j.itemId === job.itemId ? { ...j, status: "success" } : j,
-          ),
+          jobs: state.jobs.map((j) => (j.itemId === job.itemId ? { ...j, status: "success" } : j)),
         }));
 
         cooldownIdx = 0;

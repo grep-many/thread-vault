@@ -27,32 +27,30 @@ export const Button = memo(function Button({
   }, [isDisabled, onPress]);
 
   const rootClass =
-    (isSecondary ? "relative overflow-hidden rounded-[16px] px-6 py-4 border border-border/50 bg-card/80 shadow-sm dark:bg-dark-card/80 active:opacity-90" : "relative overflow-hidden rounded-[16px] px-6 py-4 shadow-sm active:opacity-90") +
+    (isSecondary
+      ? "relative overflow-hidden rounded-[16px] px-6 py-4 border border-border/50 bg-card/80 shadow-sm dark:bg-dark-card/80 active:opacity-90"
+      : "relative overflow-hidden rounded-[16px] px-6 py-4 shadow-sm active:opacity-90") +
     (isDisabled ? " opacity-50 active:opacity-50" : "") +
     (className ? ` ${className}` : "");
 
   return (
-    <Pressable
-      onPress={handlePress}
-      disabled={isDisabled}
-      className={rootClass}
-    >
+    <Pressable onPress={handlePress} disabled={isDisabled} className={rootClass}>
       {!isSecondary && (
         <LinearGradient
           colors={gradientColors}
           start={GRADIENT_START}
           end={GRADIENT_END}
-          className="absolute bottom-0 left-0 right-0 top-0"
+          className="absolute top-0 right-0 bottom-0 left-0"
         />
       )}
-      <View className="flex-row items-center justify-center gap-3 z-10">
+      <View className="z-10 flex-row items-center justify-center gap-3">
         {isLoading ? (
           <FontAwesome6
-          name="spinner"
-          size={16}
-          color={isSecondary ? "#71717a" : "white"}
-          className="animate-spin"
-        />
+            name="spinner"
+            size={16}
+            color={isSecondary ? "#71717a" : "white"}
+            className="animate-spin"
+          />
         ) : (
           children
         )}

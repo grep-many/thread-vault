@@ -112,10 +112,18 @@ export const useSync = create<SyncEngineState>((set, get) => ({
       }
 
       if (!get().isPaused) {
-        set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Thread sync complete" });
+        set({
+          isSyncing: false,
+          currentSyncingThreadId: null,
+          progressStatus: "Thread sync complete",
+        });
       }
     } catch {
-      set({ isSyncing: false, currentSyncingThreadId: null, progressStatus: "Error syncing thread" });
+      set({
+        isSyncing: false,
+        currentSyncingThreadId: null,
+        progressStatus: "Error syncing thread",
+      });
     }
   },
 
@@ -167,10 +175,18 @@ export const useSync = create<SyncEngineState>((set, get) => ({
       set(
         get().isPaused
           ? { progressStatus: "Sync paused", isSyncing: false, currentSyncingThreadId: null }
-          : { progressStatus: "Inbox sync complete", isSyncing: false, currentSyncingThreadId: null },
+          : {
+              progressStatus: "Inbox sync complete",
+              isSyncing: false,
+              currentSyncingThreadId: null,
+            },
       );
     } catch {
-      set({ isSyncing: false, progressStatus: "Error during inbox sync", currentSyncingThreadId: null });
+      set({
+        isSyncing: false,
+        progressStatus: "Error during inbox sync",
+        currentSyncingThreadId: null,
+      });
     }
   },
 
@@ -252,7 +268,11 @@ export const useSync = create<SyncEngineState>((set, get) => ({
           : { progressStatus: "Sync complete", isSyncing: false, currentSyncingThreadId: null },
       );
     } catch {
-      set({ isSyncing: false, progressStatus: "Error during thread items sync", currentSyncingThreadId: null });
+      set({
+        isSyncing: false,
+        progressStatus: "Error during thread items sync",
+        currentSyncingThreadId: null,
+      });
     }
   },
 }));

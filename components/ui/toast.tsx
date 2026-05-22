@@ -39,8 +39,6 @@ const SHADOW_STYLE = {
   elevation: 8,
 } as const;
 
-
-
 // ─── Toast Item ───────────────────────────────────────────────────────────────
 
 interface ToastItemProps {
@@ -97,7 +95,10 @@ const ToastItem = memo(function ToastItem({ toast, onHide }: ToastItemProps) {
   };
 
   return (
-    <Animated.View className="flex-row items-center gap-3 rounded-2xl border px-4 py-3" style={animStyle}>
+    <Animated.View
+      className="flex-row items-center gap-3 rounded-2xl border px-4 py-3"
+      style={animStyle}
+    >
       <FontAwesome6 name={ICON[toast.type]} size={16} color={colors.icon} />
       <Text
         className="flex-1 text-[13px] font-semibold tracking-tight"
@@ -116,13 +117,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const idRef = useRef(0);
 
-  const showToast = useCallback(
-    (message: string, type: ToastType = "info", duration = 3000) => {
-      const id = String(++idRef.current);
-      setToasts((prev) => [...prev, { id, message, type, duration }]);
-    },
-    [],
-  );
+  const showToast = useCallback((message: string, type: ToastType = "info", duration = 3000) => {
+    const id = String(++idRef.current);
+    setToasts((prev) => [...prev, { id, message, type, duration }]);
+  }, []);
 
   const hideToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -134,7 +132,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={contextValue.current}>
       {children}
-      <View className="absolute left-4 right-4 top-14 z-[9999] gap-2" pointerEvents="none">
+      <View className="absolute top-14 right-4 left-4 z-[9999] gap-2" pointerEvents="none">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onHide={hideToast} />
         ))}

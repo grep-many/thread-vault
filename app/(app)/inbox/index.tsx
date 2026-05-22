@@ -25,7 +25,6 @@ const keyExtractor = (item: InboxModel) => item.threadId;
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const ItemSeparator = memo(function ItemSeparator() {
@@ -199,12 +198,17 @@ export default function Inbox() {
   const syncAnimClass = isSyncing && !isPaused ? "animate-spin" : "";
 
   return (
-    <View className="flex-1 bg-background dark:bg-dark-background">
+    <View className="bg-background dark:bg-dark-background flex-1">
       <View className="z-50 px-5 pt-10 pb-4">
         <View className="z-50 mb-6 flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <Text className="mr-3 text-3xl font-bold text-foreground dark:text-dark-foreground">Thread Vault</Text>
-            <Pressable onPress={handleSyncIconPress} className="w-8 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted">
+            <Text className="text-foreground dark:text-dark-foreground mr-3 text-3xl font-bold">
+              Thread Vault
+            </Text>
+            <Pressable
+              onPress={handleSyncIconPress}
+              className="bg-muted dark:bg-dark-muted aspect-square w-8 items-center justify-center rounded-full"
+            >
               <FontAwesome6
                 name={syncIconName}
                 size={14}
@@ -215,29 +219,43 @@ export default function Inbox() {
           </View>
 
           <View className="relative z-50">
-            <Pressable onPress={handleDropdownToggle} className="w-10 aspect-square items-center justify-center rounded-full bg-muted dark:bg-dark-muted">
+            <Pressable
+              onPress={handleDropdownToggle}
+              className="bg-muted dark:bg-dark-muted aspect-square w-10 items-center justify-center rounded-full"
+            >
               <FontAwesome6 name="user" size={16} color="#71717a" />
             </Pressable>
 
             {dropdownOpen && (
               <Modal visible transparent animationType="none" onRequestClose={handleDropdownClose}>
                 <Pressable className="flex-1" onPress={handleDropdownClose}>
-                  <View className="absolute top-24 right-5 z-[100] w-48 rounded-xl border border-border bg-card p-2 shadow-xl dark:border-dark-border dark:bg-dark-card">
-                    <Pressable onPress={handleSync} className="flex-row items-center rounded-lg p-3 active:bg-muted/50 dark:active:bg-dark-muted/50">
+                  <View className="border-border bg-card dark:border-dark-border dark:bg-dark-card absolute top-24 right-5 z-[100] w-48 rounded-xl border p-2 shadow-xl">
+                    <Pressable
+                      onPress={handleSync}
+                      className="active:bg-muted/50 dark:active:bg-dark-muted/50 flex-row items-center rounded-lg p-3"
+                    >
                       <FontAwesome6 name={isSyncing ? "pause" : "play"} size={14} color="#71717a" />
-                      <Text className="ml-3 font-medium text-foreground dark:text-dark-foreground">
+                      <Text className="text-foreground dark:text-dark-foreground ml-3 font-medium">
                         {isSyncing ? "Pause Sync" : "Start Inbox Sync"}
                       </Text>
                     </Pressable>
 
-                    <Pressable onPress={handleShowPrompt} className="flex-row items-center rounded-lg p-3 active:bg-muted/50 dark:active:bg-dark-muted/50">
+                    <Pressable
+                      onPress={handleShowPrompt}
+                      className="active:bg-muted/50 dark:active:bg-dark-muted/50 flex-row items-center rounded-lg p-3"
+                    >
                       <FontAwesome6 name="list-check" size={14} color="#71717a" />
-                      <Text className="ml-3 font-medium text-foreground dark:text-dark-foreground">Select Threads</Text>
+                      <Text className="text-foreground dark:text-dark-foreground ml-3 font-medium">
+                        Select Threads
+                      </Text>
                     </Pressable>
 
-                    <View className="my-1 h-px bg-border dark:bg-dark-border" />
+                    <View className="bg-border dark:bg-dark-border my-1 h-px" />
 
-                    <Pressable onPress={handleLogoutPress} className="flex-row items-center rounded-lg p-3 active:bg-red-50 dark:active:bg-red-900/20">
+                    <Pressable
+                      onPress={handleLogoutPress}
+                      className="flex-row items-center rounded-lg p-3 active:bg-red-50 dark:active:bg-red-900/20"
+                    >
                       <FontAwesome6 name="arrow-right-from-bracket" size={14} color="#ef4444" />
                       <Text className="ml-3 font-medium text-red-500">Logout</Text>
                     </Pressable>
@@ -250,11 +268,16 @@ export default function Inbox() {
 
         {showBanner && (
           <View className="mb-4">
-            <Text className="mb-2 text-xs font-semibold text-muted-foreground dark:text-dark-muted-foreground">{progressStatus}</Text>
+            <Text className="text-muted-foreground dark:text-dark-muted-foreground mb-2 text-xs font-semibold">
+              {progressStatus}
+            </Text>
             {totalItemsScanned > 0 && (
               <View className="flex-row items-center gap-3">
                 {STATS_LABELS.map((label, i) => (
-                  <Text key={label} className="text-[10px] font-bold tracking-wider text-muted-foreground dark:text-dark-muted-foreground">
+                  <Text
+                    key={label}
+                    className="text-muted-foreground dark:text-dark-muted-foreground text-[10px] font-bold tracking-wider"
+                  >
                     {label}: {statValues[i]}
                   </Text>
                 ))}
@@ -275,22 +298,25 @@ export default function Inbox() {
         {isLoading || (sortedChats.length === 0 && isSyncing) ? (
           <View className="px-3 pt-2">
             {SKELETON_KEYS.map((i) => (
-              <View key={i} className="mb-1 flex-row items-center justify-between rounded-xl bg-muted/50 px-2 py-3 opacity-60 dark:bg-dark-muted/50">
+              <View
+                key={i}
+                className="bg-muted/50 dark:bg-dark-muted/50 mb-1 flex-row items-center justify-between rounded-xl px-2 py-3 opacity-60"
+              >
                 <View className="flex-1 flex-row items-center">
-                  <View className="h-12 w-12 animate-pulse rounded-full bg-muted dark:bg-dark-muted" />
+                  <View className="bg-muted dark:bg-dark-muted h-12 w-12 animate-pulse rounded-full" />
                   <View className="ml-3 flex-1 gap-2">
-                    <View className="h-4 w-32 animate-pulse rounded-md bg-muted dark:bg-dark-muted" />
-                    <View className="h-3 w-20 animate-pulse rounded-md bg-muted dark:bg-dark-muted" />
+                    <View className="bg-muted dark:bg-dark-muted h-4 w-32 animate-pulse rounded-md" />
+                    <View className="bg-muted dark:bg-dark-muted h-3 w-20 animate-pulse rounded-md" />
                   </View>
                 </View>
-                <View className="h-8 w-8 animate-pulse rounded-full bg-muted dark:bg-dark-muted" />
+                <View className="bg-muted dark:bg-dark-muted h-8 w-8 animate-pulse rounded-full" />
               </View>
             ))}
           </View>
         ) : sortedChats.length === 0 ? (
           <View className="flex-1 items-center justify-center p-6 opacity-50">
             <FontAwesome6 name="inbox" size={48} color="#71717a" />
-            <Text className="mt-4 text-center font-medium text-muted-foreground dark:text-dark-muted-foreground">
+            <Text className="text-muted-foreground dark:text-dark-muted-foreground mt-4 text-center font-medium">
               No threads found. Start an inbox sync to fetch your latest conversations.
             </Text>
           </View>

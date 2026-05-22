@@ -17,7 +17,6 @@ export interface InputProps extends TextInputProps {
 
 const ANDROID_PROPS = Platform.OS === "android" ? { includeFontPadding: false } : {};
 
-
 const Input = forwardRef<TextInput, InputProps>(
   ({ className = "", containerClassName = "", icon, editable, style, ...props }, ref) => {
     const inputRef = useRef<TextInput>(null);
@@ -54,7 +53,10 @@ const Input = forwardRef<TextInput, InputProps>(
           cursorColor="#ec4899"
           textAlignVertical="center"
           {...ANDROID_PROPS}
-          className={"flex-1 text-[16px] font-medium text-foreground dark:text-dark-foreground" + (className ? ` ${className}` : "")}
+          className={
+            "text-foreground dark:text-dark-foreground flex-1 text-[16px] font-medium" +
+            (className ? ` ${className}` : "")
+          }
           style={[{ flex: 1 }, style]}
           {...props}
         />

@@ -1,4 +1,5 @@
 # 📱 Cross-Platform Android Dev Setup
+
 ## Wireless ADB + scrcpy Development Environment
 
 A complete cross-platform Android development setup using:
@@ -32,6 +33,7 @@ Install:
 ## Android Platform Tools (ADB)
 
 Download:
+
 - https://developer.android.com/tools/releases/platform-tools
 
 Ensure `adb` is added to PATH.
@@ -41,6 +43,7 @@ Ensure `adb` is added to PATH.
 ## scrcpy
 
 Official:
+
 - https://github.com/Genymobile/scrcpy
 
 ### Windows
@@ -311,16 +314,16 @@ scrcpy \
 
 # ⚡ What This Setup Does
 
-| Feature | Purpose |
-|---|---|
-| `--stay-awake` | Prevents Android sleep |
-| `--turn-screen-off` | Turns OFF physical display |
-| `--shortcut-mod=lctrl` | Uses Left Ctrl shortcuts |
-| `--always-on-top` | Keeps mirror over IDE |
-| `--window-borderless` | Frameless clean window |
-| `--max-size 720` | Reduced wireless latency |
-| `--video-bit-rate 2M` | Stable Wi-Fi streaming |
-| `--max-fps 30` | Lower bandwidth usage |
+| Feature                | Purpose                    |
+| ---------------------- | -------------------------- |
+| `--stay-awake`         | Prevents Android sleep     |
+| `--turn-screen-off`    | Turns OFF physical display |
+| `--shortcut-mod=lctrl` | Uses Left Ctrl shortcuts   |
+| `--always-on-top`      | Keeps mirror over IDE      |
+| `--window-borderless`  | Frameless clean window     |
+| `--max-size 720`       | Reduced wireless latency   |
+| `--video-bit-rate 2M`  | Stable Wi-Fi streaming     |
+| `--max-fps 30`         | Lower bandwidth usage      |
 
 ---
 
@@ -336,59 +339,60 @@ scrcpy \
 ---
 
 # ⌨️ scrcpy Shortcuts
+
 ## Modifier = Left Ctrl
 
 ---
 
 # Navigation
 
-| Action | Shortcut |
-|---|---|
-| Home | `L-Ctrl + h` |
-| Back | `L-Ctrl + b` |
+| Action       | Shortcut     |
+| ------------ | ------------ |
+| Home         | `L-Ctrl + h` |
+| Back         | `L-Ctrl + b` |
 | App Switcher | `L-Ctrl + s` |
-| Menu | `L-Ctrl + m` |
+| Menu         | `L-Ctrl + m` |
 
 ---
 
 # Device Controls
 
-| Action | Shortcut |
-|---|---|
+| Action        | Shortcut     |
+| ------------- | ------------ |
 | Toggle Screen | `L-Ctrl + p` |
 | Rotate Screen | `L-Ctrl + r` |
-| Fullscreen | `L-Ctrl + f` |
-| Volume Up | `L-Ctrl + ↑` |
-| Volume Down | `L-Ctrl + ↓` |
+| Fullscreen    | `L-Ctrl + f` |
+| Volume Up     | `L-Ctrl + ↑` |
+| Volume Down   | `L-Ctrl + ↓` |
 
 ---
 
 # Clipboard
 
-| Action | Shortcut |
-|---|---|
-| Copy to PC | `L-Ctrl + c` |
-| Paste to Phone | `L-Ctrl + v` |
-| Cut | `L-Ctrl + x` |
+| Action         | Shortcut             |
+| -------------- | -------------------- |
+| Copy to PC     | `L-Ctrl + c`         |
+| Paste to Phone | `L-Ctrl + v`         |
+| Cut            | `L-Ctrl + x`         |
 | Sync Clipboard | `L-Ctrl + Shift + v` |
 
 ---
 
 # Notifications
 
-| Action | Shortcut |
-|---|---|
-| Expand Notifications | `L-Ctrl + n` |
+| Action                 | Shortcut             |
+| ---------------------- | -------------------- |
+| Expand Notifications   | `L-Ctrl + n`         |
 | Collapse Notifications | `L-Ctrl + Shift + n` |
 
 ---
 
 # Utility
 
-| Action | Shortcut |
-|---|---|
-| Screenshot | `L-Ctrl + Shift + s` |
-| Show Touches | `L-Ctrl + t` |
+| Action       | Shortcut             |
+| ------------ | -------------------- |
+| Screenshot   | `L-Ctrl + Shift + s` |
+| Show Touches | `L-Ctrl + t`         |
 
 ---
 
@@ -397,6 +401,7 @@ scrcpy \
 ---
 
 # Windows Script
+
 ## `scripts/dev-mirror.bat`
 
 ```bat
@@ -427,6 +432,7 @@ dev-mirror.bat
 ---
 
 # Linux/macOS Script
+
 ## `scripts/dev-mirror.sh`
 
 ```bash

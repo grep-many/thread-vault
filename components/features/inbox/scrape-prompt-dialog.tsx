@@ -21,28 +21,35 @@ interface ThreadAvatarProps {
 
 // ─── Stable class strings ─────────────────────────────────────────────────────
 
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const ThreadAvatar = memo(function ThreadAvatar({ item, isSelected, onToggle }: ThreadAvatarProps) {
   const { threadId } = item;
   const handlePress = useCallback(() => onToggle(threadId), [onToggle, threadId]);
-  const checkInnerClass = isSelected ? "h-full w-full items-center justify-center rounded-full border-2 border-primary bg-primary" : "h-full w-full items-center justify-center rounded-full border-2 border-border bg-transparent dark:border-dark-border";
+  const checkInnerClass = isSelected
+    ? "h-full w-full items-center justify-center rounded-full border-2 border-primary bg-primary"
+    : "h-full w-full items-center justify-center rounded-full border-2 border-border bg-transparent dark:border-dark-border";
 
   return (
-    <Pressable onPress={handlePress} className="flex-1 items-center justify-start p-2 active:opacity-70">
+    <Pressable
+      onPress={handlePress}
+      className="flex-1 items-center justify-start p-2 active:opacity-70"
+    >
       <View className="relative">
         <Image
           source={item.pfpUrl ? { uri: item.pfpUrl } : undefined}
-          className="mb-2 h-16 w-16 rounded-full bg-muted dark:bg-dark-muted"
+          className="bg-muted dark:bg-dark-muted mb-2 h-16 w-16 rounded-full"
         />
-        <View className="absolute bottom-2 right-0 h-6 w-6 items-center justify-center rounded-full border-[3px] border-card bg-card dark:border-dark-card dark:bg-dark-card">
+        <View className="border-card bg-card dark:border-dark-card dark:bg-dark-card absolute right-0 bottom-2 h-6 w-6 items-center justify-center rounded-full border-[3px]">
           <View className={checkInnerClass}>
             {isSelected && <FontAwesome6 name="check" size={8} color="white" />}
           </View>
         </View>
       </View>
-      <Text className="text-center text-xs font-semibold text-foreground dark:text-dark-foreground" numberOfLines={1}>
+      <Text
+        className="text-foreground dark:text-dark-foreground text-center text-xs font-semibold"
+        numberOfLines={1}
+      >
         {item.username}
       </Text>
     </Pressable>
@@ -102,9 +109,11 @@ export const ScrapePromptDialog = memo(function ScrapePromptDialog({
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Select Threads to Sync">
       <View className="mb-4 flex-row items-center justify-between px-1">
-        <Text className="text-sm font-semibold text-muted-foreground dark:text-dark-muted-foreground">{selectedCount} selected</Text>
+        <Text className="text-muted-foreground dark:text-dark-muted-foreground text-sm font-semibold">
+          {selectedCount} selected
+        </Text>
         <Pressable onPress={toggleSelectAll} className="p-2 active:opacity-70">
-          <Text className="font-bold text-primary">
+          <Text className="text-primary font-bold">
             {allSelected ? "Deselect All" : "Select All"}
           </Text>
         </Pressable>
@@ -126,9 +135,13 @@ export const ScrapePromptDialog = memo(function ScrapePromptDialog({
       </View>
       <View className="mt-6 flex-row justify-end gap-3">
         <Button variant="secondary" onPress={onClose}>
-          <Text className="font-bold text-foreground dark:text-dark-foreground">Cancel</Text>
+          <Text className="text-foreground dark:text-dark-foreground font-bold">Cancel</Text>
         </Button>
-        <Button variant="gradient" onPress={handleConfirm} disabled={selectedThreadIds.length === 0}>
+        <Button
+          variant="gradient"
+          onPress={handleConfirm}
+          disabled={selectedThreadIds.length === 0}
+        >
           <Text className="font-bold text-white">Start Sync</Text>
         </Button>
       </View>

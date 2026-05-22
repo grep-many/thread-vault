@@ -11,7 +11,7 @@ import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { createVideoPlayer, type VideoPlayer, VideoView } from "expo-video";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import {  Dimensions, type LayoutChangeEvent, Pressable, Text, View } from "react-native";
+import { Dimensions, type LayoutChangeEvent, Pressable, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 const { height: INITIAL_HEIGHT, width: INITIAL_WIDTH } = Dimensions.get("window");
@@ -40,13 +40,7 @@ function getMediaKind(item: Media): MediaKind {
   return "image";
 }
 
-const VideoSlide = memo(function VideoSlide({
-  url,
-  isActive,
-}: {
-  url: string;
-  isActive: boolean;
-}) {
+const VideoSlide = memo(function VideoSlide({ url, isActive }: { url: string; isActive: boolean }) {
   const playerRef = useRef<VideoPlayer | null>(null);
 
   if (!playerRef.current) {
@@ -117,9 +111,7 @@ function LinkSlide({ url, width, height }: { url?: string | null; width: number;
         onLoadStart={() => setLoading(true)}
         onLoadEnd={() => setLoading(false)}
       />
-      {loading && (
-        <View className="absolute inset-0 items-center justify-center bg-black"/>
-      )}
+      {loading && <View className="absolute inset-0 items-center justify-center bg-black" />}
     </View>
   );
 }
@@ -140,10 +132,7 @@ const MediaItem = memo(function MediaItem({
   const kind = getMediaKind(item);
 
   return (
-    <View
-      style={{ width, height }}
-      className="relative items-center justify-center bg-black"
-    >
+    <View style={{ width, height }} className="relative items-center justify-center bg-black">
       {kind === "audio" ? (
         <AudioPlayer url={item.url} isActive={isActive} />
       ) : kind === "video" && item.url ? (
@@ -199,9 +188,9 @@ export default function MediaViewer() {
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
-    setLayout((prev) => (
-      prev.width === width && prev.height === height ? prev : { width, height }
-    ));
+    setLayout((prev) =>
+      prev.width === width && prev.height === height ? prev : { width, height },
+    );
   }, []);
 
   useEffect(() => {
@@ -361,4 +350,4 @@ export default function MediaViewer() {
       />
     </View>
   );
-} 
+}
