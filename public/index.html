@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Vault • Premium Instagram DM Media Archive</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="../assets/icon.png" type="image/x-icon">
+    
+    <style>
+        :root {
+            --pink: #ec4899;
+            --purple: #9333ea;
+            --yellow: #facc15;
+            --bg-dark: #09090b;
+            --card-bg: rgba(24, 24, 27, 0.7);
+            --border-glow: rgba(236, 72, 153, 0.2);
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --instagram-gradient: linear-gradient(45deg, #facc15, #ec4899, #9333ea);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Ambient Animated Blobs */
+        .blob-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -2;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.23;
+            mix-blend-mode: screen;
+            transition: transform 0.5s ease;
+        }
+
+        .blob-1 {
+            top: -10%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--pink) 0%, transparent 70%);
+        }
+
+        .blob-2 {
+            bottom: -10%;
+            right: -10%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, var(--purple) 0%, transparent 70%);
+        }
+
+        .blob-3 {
+            top: 40%;
+            left: 50%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--yellow) 0%, transparent 70%);
+            opacity: 0.12;
+        }
+
+        /* Subtle Grid Overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-size: 60px 60px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--pink);
+        }
+
+        /* Reusable UI Components & Layouts */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px 24px;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(236, 72, 153, 0.3);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 20px rgba(147, 51, 234, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #facc15, #ec4899, #9333ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Navigation Bar */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            background: rgba(9, 9, 11, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            transition: padding 0.3s ease;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 80px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .logo-area img {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--text-main);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--instagram-gradient);
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .nav-links a:hover::after, .nav-links a.active::after {
+            width: 100%;
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .hamburger span {
+            width: 24px;
+            height: 2px;
+            background: var(--text-main);
+            border-radius: 2px;
+            transition: 0.3s ease;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 180px 20px 100px 20px;
+            position: relative;
+            text-align: center;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 300px;
+            background: var(--instagram-gradient);
+            filter: blur(150px);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        .hero-logo-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 24px;
+        }
+
+        .hero-logo-glow {
+            position: absolute;
+            inset: -4px;
+            background: var(--instagram-gradient);
+            border-radius: 32px;
+            filter: blur(16px);
+            opacity: 0.75;
+            z-index: -1;
+            animation: pulse-glow 3s infinite alternate;
+        }
+
+        .hero-logo {
+            width: 110px;
+            height: 110px;
+            border-radius: 32px;
+            background: #18181b;
+            padding: 0px; /* Removed inside spacing to remove background padding lines */
+            border: 1px solid rgba(255,255,255,0.15);
+            object-fit: cover; /* Ensures icon graphics fill boundary cleanly */
+        }
+
+        .badge-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .badge-row img {
+            height: 24px;
+            border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .hero .subtitle {
+            font-size: 1.4rem;
+            color: var(--text-muted);
+            max-width: 720px;
+            margin: 0 auto 40px auto;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .cta-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--instagram-gradient);
+            color: #ffffff;
+            box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
+            border: none;
+            position: relative;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(236, 72, 153, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .apk-meta {
+            margin-top: -24px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .apk-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .apk-meta .dot {
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+
+        /* Shared Section Header styles */
+        section {
+            padding: 100px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Features Section Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .feature-icon-wrapper {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(147,51,234,0.15) 100%);
+            border: 1px solid rgba(236,72,153,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: var(--pink);
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Screenshots / Gallery Section */
+        .screenshots-track {
+            display: flex;
+            gap: 32px;
+            overflow-x: auto;
+            padding: 20px 4px 40px 4px;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none; /* Firefox */
+        }
+
+        .screenshots-track::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        .phone-mockup {
+            flex: 0 0 280px;
+            scroll-snap-align: start;
+            background: #000000;
+            border-radius: 40px;
+            padding: 12px;
+            border: 4px solid #27272a;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: grab;
+            position: relative;
+        }
+
+        .phone-mockup:hover {
+            transform: translateY(-10px) scale(1.03) rotate(1deg);
+            border-color: var(--purple);
+            box-shadow: 0 35px 60px -10px rgba(147, 51, 234, 0.3);
+        }
+
+        .phone-mockup img {
+            width: 100%;
+            height: auto;
+            border-radius: 32px;
+            display: block;
+            pointer-events: none;
+        }
+
+        /* Tech Stack Grid */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .tech-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 18px;
+        }
+
+        .tech-card i {
+            font-size: 1.8rem;
+            background: var(--instagram-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tech-card span {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Architecture Section Grid */
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .arch-card {
+            position: relative;
+            border-left: 3px solid var(--purple);
+        }
+
+        .arch-card:nth-child(even) {
+            border-left-color: var(--pink);
+        }
+
+        .arch-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        /* Sync Flow Timeline diagram */
+        .sync-box {
+            background: rgba(147, 51, 234, 0.05);
+            border: 1px dashed rgba(147, 51, 234, 0.3);
+            border-radius: 20px;
+            padding: 32px;
+            margin-top: 40px;
+        }
+
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            position: relative;
+        }
+
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 44px;
+            width: 2px;
+            height: calc(100% - 16px);
+            background: rgba(255,255,255,0.06);
+        }
+
+        .flow-step:last-child::before {
+            display: none;
+        }
+
+        .flow-num {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--pink);
+            flex-shrink: 0;
+        }
+
+        .flow-content h4 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .flow-content p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Security Feature Blocks */
+        .security-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .security-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .security-item {
+            display: flex;
+            gap: 16px;
+        }
+
+        .security-item i {
+            color: #34d399;
+            font-size: 1.3rem;
+            margin-top: 3px;
+        }
+
+        .security-item h4 {
+            font-size: 1.15rem;
+            margin-bottom: 4px;
+        }
+
+        /* Installation Commands styling */
+        .install-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .code-block {
+            background: #040405;
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .code-header {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-header i {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .code-header i:hover {
+            color: var(--text-main);
+        }
+
+        .code-body {
+            color: #f4f4f5;
+            font-size: 0.95rem;
+        }
+
+        .code-prefix {
+            color: var(--pink);
+            user-select: none;
+            margin-right: 8px;
+        }
+
+        /* Premium Footer block styles */
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 60px 0;
+            background: rgba(4, 4, 5, 0.7);
+        }
+
+        .footer-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 32px;
+        }
+
+        .footer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .footer-note {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .footer-badges {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Animation Keyframes */
+        @keyframes pulse-glow {
+            0% { transform: scale(0.98); opacity: 0.5; }
+            100% { transform: scale(1.02); opacity: 0.8; }
+        }
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 968px) {
+            .hero h1 { font-size: 2.8rem; }
+            .hero .subtitle { font-size: 1.15rem; }
+            .security-container { grid-template-columns: 1fr; }
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 80px;
+                left: 0;
+                width: 100%;
+                background: #09090b;
+                border-bottom: 1px solid var(--glass-border);
+                flex-direction: column;
+                padding: 24px;
+                gap: 20px;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            }
+            .nav-links.active { display: flex; }
+            .hamburger { display: flex; }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 2.2rem; }
+            .btn { width: 100%; justify-content: center; }
+            .cta-group { width: 100%; }
+        }
+
+        /* Scroll Animation Reveal Hook */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="blob-container">
+        <div class="blob blob-1" id="blob1"></div>
+        <div class="blob blob-2" id="blob2"></div>
+        <div class="blob blob-3" id="blob3"></div>
+    </div>
+    <div class="grid-overlay"></div>
+
+    <nav>
+        <div class="container nav-container">
+            <a href="#" class="logo-area">
+                <img src="../assets/icon.png" alt="Thread Vault Logo" onerror="this.src='https://placehold.co/100x100/18181b/ec4899?text=TV'">
+                <span>Thread Vault</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="#features" class="active">Features</a>
+                <a href="#screenshots">Screenshots</a>
+                <a href="#tech-stack">Tech Stack</a>
+                <a href="#architecture">Architecture</a>
+                <a href="#installation">Setup</a>
+            </div>
+            <button class="hamburger" id="hamburgerBtn" aria-label="Toggle Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <header class="hero container">
+        <div class="hero-logo-wrapper">
+            <div class="hero-logo-glow"></div>
+            <img class="hero-logo" src="../assets/icon.png" alt="Thread Vault App Icon" onerror="this.src='https://placehold.co/200x200/18181b/ec4899?text=Icon'">
+        </div>
+        
+        <div class="badge-row">
+            <img src="https://img.shields.io/badge/Expo-54-000020?logo=expo" alt="Expo">
+            <img src="https://img.shields.io/badge/React%20Native-0.81-blue?logo=react" alt="React Native">
+            <img src="https://img.shields.io/badge/WatermelonDB-Local%20SQLite-red" alt="WatermelonDB">
+            <img src="https://img.shields.io/badge/Android-Gradle-green?logo=android" alt="Android Support">
+        </div>
+
+        <h1>Secure, Local Archive For Your <span class="gradient-text">Direct Messages</span></h1>
+        <p class="subtitle">A local-first Expo and React Native application for archiving, browsing, and managing Instagram Direct Message media.</p>
+
+        <div class="cta-group">
+            <a href="./thread-vault.apk" class="btn btn-primary">
+                <i class="fab fa-android"></i> Download APK
+            </a>
+            <a href="https://github.com/grep-many/thread-vault" target="_blank" class="btn btn-secondary">
+                <i class="fab fa-github"></i> View GitHub Source
+            </a>
+        </div>
+
+        <div class="apk-meta">
+            <span><i class="fas fa-file-archive"></i> thread-vault.apk</span>
+            <span class="dot"></span>
+            <span>Android Release</span>
+            <span class="dot"></span>
+            <span>Local-first • Offline archive • No backend</span>
+        </div>
+    </header>
+
+    <section id="features" class="container reveal">
+        <div class="section-header">
+            <h2>Designed for Pure Data Ownership</h2>
+            <p>Completely backendless. It parses, stores, and presents your chat archives securely right inside your Android client.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-sign-in-alt"></i></div>
+                <h3>Instagram Login</h3>
+                <p>Authenticate flawlessly using an inline encrypted secure standard native WebView extraction structure.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-paste"></i></div>
+                <h3>Manual Session Import</h3>
+                <p>Advanced mode allows copy-pasting active web standalone session tokens cleanly without automated input prompts.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-sync-alt"></i></div>
+                <h3>Inbox Sync</h3>
+                <p>Efficiently crawls conversational indexes using multi-directional cursor pagination endpoints safely.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-photo-video"></i></div>
+                <h3>Media Archive</h3>
+                <p>Locks down high-fidelity asset arrays into tabbed views grouped perfectly by native formats.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-film"></i></div>
+                <h3>Reels Extraction</h3>
+                <p>Parses inline media nodes to fetch direct underlying CDN video assets smoothly.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-microphone"></i></div>
+                <h3>Voice Message Support</h3>
+                <p>Preserves and replays native audio attachments using local embedded audio drivers seamlessly.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-database"></i></div>
+                <h3>WatermelonDB Storage</h3>
+                <p>Super fast database interaction layers driving reactive layout refreshes instantly via native JSI.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-user-shield"></i></div>
+                <h3>Local-first Privacy</h3>
+                <p>Zero tracking nodes or analytics clouds. Your data exists solely on the hardware chip you own.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-plane-slash"></i></div>
+                <h3>Offline Access</h3>
+                <p>Review every saved chat file, picture clip, voice voice memo, and hypermedia map without an internet connection.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper"><i class="fas fa-bolt"></i></div>
+                <h3>FlashList Performance</h3>
+                <p>Flawless 60 FPS viewport recycling mechanics rendering complex, heavy data structures with ease.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="screenshots" class="container reveal">
+        <div class="section-header">
+            <h2>Explore the System Inside Out</h2>
+            <p>A premium native layout designed with high-fidelity components built natively for standard mobile platforms.</p>
+        </div>
+
+        <div class="screenshots-track" id="screensTrack">
+            <div class="phone-mockup">
+                <img src="../preview/splash-screen.jpeg" alt="Splash Screen Layout" onerror="this.src='https://placehold.co/360x740/18181b/ffffff?text=Splash+Screen'">
+            </div>
+            <div class="phone-mockup">
+                <img src="../preview/inbox-screen.jpeg" alt="Inbox Navigation View" onerror="this.src='https://placehold.co/360x740/18181b/ffffff?text=Inbox+View'">
+            </div>
+            <div class="phone-mockup">
+                <img src="../preview/threadid-muli-select-demo.jpeg" alt="Multi-Select Management Dashboard" onerror="this.src='https://placehold.co/360x740/18181b/ffffff?text=Multi+Select'">
+            </div>
+            <div class="phone-mockup">
+                <img src="../preview/threadid-unsend-select-demo.jpeg" alt="Unsend Queue Lifecycle View" onerror="this.src='https://placehold.co/360x740/18181b/ffffff?text=Unsend+View'">
+            </div>
+        </div>
+    </section>
+
+    <section id="tech-stack" class="container reveal">
+        <div class="section-header">
+            <h2>Engineered With Precision Tooling</h2>
+            <p>Built using ultra-fast layout bindings, direct machine JSI interfaces, and highly optimal rendering engines.</p>
+        </div>
+
+        <div class="tech-grid">
+            <div class="tech-card"><i class="fab fa-react"></i> <span>Expo 54</span></div>
+            <div class="tech-card"><i class="fab fa-js-square"></i> <span>React Native</span></div>
+            <div class="tech-card"><i class="fas fa-code"></i> <span>TypeScript</span></div>
+            <div class="tech-card"><i class="fas fa-server"></i> <span>WatermelonDB</span></div>
+            <div class="tech-card"><i class="fas fa-wind"></i> <span>Nativewind</span></div>
+            <div class="tech-card"><i class="fas fa-project-diagram"></i> <span>Zustand</span></div>
+            <div class="tech-card"><i class="fas fa-cubes"></i> <span>SQLite</span></div>
+            <div class="tech-card"><i class="fab fa-github"></i> <span>GitHub Actions</span></div>
+        </div>
+    </section>
+
+    <section id="architecture" class="container reveal">
+        <div class="section-header">
+            <h2>The Architecture Blueprint</h2>
+            <p>Discover how the local data pipelines extract and persist items down to the local file layout securely.</p>
+        </div>
+
+        <div class="arch-grid">
+            <div class="glass-card arch-card">
+                <h3>Authentication Layer</h3>
+                <p>Manages login sessions safely using Expo SecureStore hooks coupled to cookie intercepts inside native WebViews.</p>
+            </div>
+            <div class="glass-card arch-card">
+                <h3>Sync Engine</h3>
+                <p>Coordinates pagination indexing workflows using state machines built entirely inside a lightweight Zustand framework.</p>
+            </div>
+            <div class="glass-card arch-card">
+                <h3>WatermelonDB Layer</h3>
+                <p>High-speed relational data abstraction executing fast bulk writes straight to local storage modules over JSI bridges.</p>
+            </div>
+            <div class="glass-card arch-card">
+                <h3>Instagram API Client</h3>
+                <p>Assembles custom web-compliant browser wrapper structures injecting secure user-agents, tokens, and verification parameters.</p>
+            </div>
+            <div class="glass-card arch-card">
+                <h3>Media Extraction Layer</h3>
+                <p>Normalizes messy incoming JSON payloads into tightly typed, pristine file asset records matching app schema keys.</p>
+            </div>
+            <div class="glass-card arch-card">
+                <h3>Expo Router Layout</h3>
+                <p>State-aware link configurations controlling view lifecycle setups, routing states, and modal structures safely.</p>
+            </div>
+        </div>
+
+        <div class="sync-box glass-card">
+            <h3 style="margin-bottom: 24px; font-weight: 700;" class="gradient-text">Synchronization Lifecycle</h3>
+            <div class="flow-container">
+                <div class="flow-step">
+                    <div class="flow-num">1</div>
+                    <div class="flow-content">
+                        <h4>Session Verification Routine</h4>
+                        <p>App bootstraps, pulls hidden tokens from system storage, and executes a test inquiry to confirm valid session contexts.</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">2</div>
+                    <div class="flow-content">
+                        <h4>Inbox Crawl Phase</h4>
+                        <p>Fetches standard profile lists recursively while processing pagination metadata and storing state cursors locally.</p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">3</div>
+                    <div class="flow-content">
+                        <h4>Node Target Parse Flow</h4>
+                        <p>Navigates individual chat rows, processes content arrays, and saves clean media structures while dropping duplicate object records.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container reveal">
+        <div class="glass-card security-container">
+            <div>
+                <div class="security-badge"><i class="fas fa-shield-alt"></i> Production Safe</div>
+                <h2 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 16px;">Zero Cloud Footprint. Total Control.</h2>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">Thread Vault operates entirely inside an isolated execution zone. Your access credentials never travel to external servers outside your chosen client target.</p>
+                
+                <div class="security-list">
+                    <div class="security-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <h4>Hardware Encryption Bind</h4>
+                            <p>All extraction keys remain encrypted on-device via SecureStore blocks.</p>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <h4>Wipe Out Routine</h4>
+                            <p>Logging out invokes a destructive drop cycle resetting the system database storage clean immediately.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; font-size: 8rem; color: rgba(147,51,234,0.15);">
+                <i class="fas fa-user-lock"></i>
+            </div>
+        </div>
+    </section>
+
+    <section id="installation" class="container reveal">
+        <div class="section-header">
+            <h2>Developer Initialization Workflow</h2>
+            <p>Clone the core repository and boot up the development client using native terminal toolchains locally.</p>
+        </div>
+
+        <div class="install-grid">
+            <div class="code-block">
+                <div class="code-header"><span>Step 1</span><i class="far fa-copy" onclick="copyCode(this, 'npm install')"></i></div>
+                <div class="code-body"><span class="code-prefix">$</span>npm install</div>
+            </div>
+            <div class="code-block">
+                <div class="code-header"><span>Step 2</span><i class="far fa-copy" onclick="copyCode(this, 'npm start')"></i></div>
+                <div class="code-body"><span class="code-prefix">$</span>npm start</div>
+            </div>
+            <div class="code-block">
+                <div class="code-header"><span>Android</span><i class="far fa-copy" onclick="copyCode(this, 'npm run android')"></i></div>
+                <div class="code-body"><span class="code-prefix">$</span>npm run android</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-grid">
+            <div class="footer-info">
+                <div class="logo-area" style="margin-bottom: 8px;">
+                    <img src="../assets/icon.png" alt="Logo" onerror="this.src='https://placehold.co/50x50/18181b/ec4899?text=TV'">
+                    <span>Thread Vault</span>
+                </div>
+                <div class="footer-note">Released under the open MIT License.</div>
+                <div class="footer-note" style="opacity: 0.6;">Automated delivery via static GitHub Pages pipeline logs.</div>
+            </div>
+            <div class="footer-info" style="text-align: right;">
+                <div class="footer-note" style="font-weight: 500; color: var(--text-main);">Built with Expo + React Native</div>
+                <div class="footer-note">A local DM media vault solution.</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Hamburger Menu Controls
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const navLinks = document.getElementById('navLinks');
+
+        hamburgerBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+
+        // Close navbar on click in mobile layout
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+            });
+        });
+
+        // Interactive Mouse-Reactive Ambient Glow Effect
+        const blob1 = document.getElementById('blob1');
+        const blob2 = document.getElementById('blob2');
+
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX;
+            const y = e.clientY;
+            
+            // Subtle slow movement translation matrix
+            blob1.style.transform = `translate(${x * 0.04}px, ${y * 0.04}px)`;
+            blob2.style.transform = `translate(${x * -0.03}px, ${y * -0.03}px)`;
+        });
+
+        // Scroll Reveal Implementation Mechanics
+        const revealElements = document.querySelectorAll('.reveal');
+
+        const activeScrollReveal = () => {
+            const buffer = 120;
+            revealElements.forEach(el => {
+                const elementTop = el.getBoundingClientRect().top;
+                if (elementTop < window.innerHeight - buffer) {
+                    el.classList.add('visible');
+                }
+            });
+        };
+
+        window.addEventListener('scroll', activeScrollReveal);
+        window.addEventListener('load', activeScrollReveal);
+
+        // Navbar Section Dynamic In-View Link Highlighting
+        const sections = document.querySelectorAll('section, header');
+        const navAnchorLinks = document.querySelectorAll('.nav-links a');
+
+        window.addEventListener('scroll', () => {
+            let activeId = 'features';
+            sections.forEach(sec => {
+                const top = sec.offsetTop - 120;
+                const height = sec.offsetHeight;
+                if (window.scrollY >= top && window.scrollY < top + height) {
+                    activeId = sec.getAttribute('id') || 'features';
+                }
+            });
+
+            navAnchorLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${activeId}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Horizontal Touch Scroll Enhancements for Screen Slider Track
+        const track = document.getElementById('screensTrack');
+        let activeHold = false;
+        let startPointX;
+        let leftScrollPos;
+
+        track.addEventListener('mousedown', (e) => {
+            activeHold = true;
+            track.style.cursor = 'grabbing';
+            startPointX = e.pageX - track.offsetLeft;
+            leftScrollPos = track.scrollLeft;
+        });
+
+        track.addEventListener('mouseleave', () => {
+            activeHold = false;
+            track.style.cursor = 'grab';
+        });
+
+        track.addEventListener('mouseup', () => {
+            activeHold = false;
+            track.style.cursor = 'grab';
+        });
+
+        track.addEventListener('mousemove', (e) => {
+            if (!activeHold) return;
+            e.preventDefault();
+            const currentX = e.pageX - track.offsetLeft;
+            const deviation = (currentX - startPointX) * 1.5; 
+            track.scrollLeft = leftScrollPos - deviation;
+        });
+
+        // Copy Clipboard Helper Util
+        function copyCode(iconElement, commandText) {
+            navigator.clipboard.writeText(commandText).then(() => {
+                iconElement.className = "fas fa-check";
+                iconElement.style.color = "#34d399";
+                setTimeout(() => {
+                    iconElement.className = "far fa-copy";
+                    iconElement.style.color = "";
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

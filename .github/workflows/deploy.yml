@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
 
 permissions:
   contents: read
@@ -31,33 +32,35 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Enable legacy peer deps
+        run: npm config set legacy-peer-deps true
+
       - name: Install dependencies
         run: npm ci
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: 17
 
-      - name: Build release APK
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
 
-      - name: Prepare GitHub Pages artifact
+      - name: Prepare Pages files
         run: |
-          mkdir public
           cp android/app/build/outputs/apk/release/app-release.apk public/${REPO_NAME}.apk
 
-      - name: Configure GitHub Pages
+      - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Pages artifact
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: public
