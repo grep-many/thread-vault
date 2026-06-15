@@ -53,9 +53,34 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
 
+      # --- DYNAMIC KEY GENERATION & SIGNING ---
+      - name: Generate Key and Sign APK
+        run: |
+          # 1. Generate a temporary keystore file inside the runner
+          keytool -genkeypair -v \
+            -keystore temp.keystore \
+            -alias temp-alias \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass temporarypassword \
+            -keypass temporarypassword \
+            -dname "CN=ThreadVault, OU=Dev, O=GrepMany, L=Hyderabad, S=TS, C=IN"
+          
+          # 2. Sign the generated release APK using apksigner (built into Android SDK)
+          # The Android SDK is pre-installed on the GitHub ubuntu-latest runner image
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+            --ks temp.keystore \
+            --ks-pass pass:temporarypassword \
+            --key-pass pass:temporarypassword \
+            --out android/app/build/outputs/apk/release/app-release-signed.apk \
+            android/app/build/outputs/apk/release/app-release.apk
+
+      # --- PREPARE & DEPLOY ---
       - name: Prepare Pages files
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk public/${REPO_NAME}.apk
+          mkdir -p public
+          cp android/app/build/outputs/apk/release/app-release-signed.apk public/${REPO_NAME}.apk
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
